@@ -40,6 +40,7 @@ real eps=1e-12; //10e-10
 int pres=12;
 
 //Gobal bool
+bool PLOTMAT=getARGV("-matplot",0);
 bool PLOT3D=getARGV("-3Dplot",0);
 bool PLOT2D=getARGV("-2Dplot",1);
 bool MAXCONST=getARGV("-const",0);
@@ -205,14 +206,11 @@ real Masymp=4.0*pi*int1d(Th,2)(c*dx(f)*sin(y));
 real Jasymp=-2.0*pi*c*int1d(Th,2)(dx(w)*sin(y));
 real gtt=int1d(Th,4)(-exp(2.0*f)*sin(y));
 
-func rhoT=pow(phi,2)*(1 + pow(E,-2*f)*pow(om,2) - pow(E,-2*f)*pow(M,2)*pow(R,-4)*pow(w,2) + pow(E,-2*l)*pow(M,2)*pow(R,-2)*pow(csc(y),2)) + 
-   pow(E,-2*(fm + l))*(pow(dxR,-2)*pow(dx(phi),2) + pow(R,-2)*pow(dy(phi),2));
+func rhoT=pow(phi,2)*(1 + pow(E,-2*f)*pow(om,2) - pow(E,-2*f)*pow(M,2)*pow(R,-4)*pow(w,2) /*+ pow(E,-2*l)*pow(M,2)*pow(R,-2)*pow(csc(y),2)*/) + pow(E,-2*(fm + l))*(pow(dxR,-2)*pow(dx(phi),2) + pow(R,-2)*pow(dy(phi),2));
      
 func rhoK=-2*pow(E,-2*f)*pow(phi,2)*pow(R,-2)*(2*M*om*w + (pow(E,2*f) - 2*pow(om,2))*pow(R,2));
 
-func fein23=(pow(dxR,-2)*pow(E,-2*(f + fm + l))*pow(R,-3)*(-2*(-(dxR*(dy(f) + dy(fm) + dy(l))) + 
-          R*(dxy(f) + dxy(l) + (dx(f) - dx(fm) - dx(l))*dy(f) - dx(fm)*(cot(y) + dy(l)) - (dx(f) + dx(l))*(dy(fm) + dy(l)) + 4*dx(phi)*dy(phi)))*pow(E,2*f)*pow(R,2)
-        + (-2*dxR*w + R*dx(w))*dy(w)*pow(E,2*l)*pow(sin(y),2)))/2.;
+func fein23=(pow(dxR,-2)*pow(E,-2*(f + fm + l))*pow(R,-3)*(-2*(-(dxR*(dy(f) + dy(fm) + dy(l))) + R*(dxy(f) + dxy(l) + (dx(f) - dx(fm) - dx(l))*dy(f) - dx(fm)*(cot(y) + dy(l)) - (dx(f) + dx(l))*(dy(fm) + dy(l)) + 4*dx(phi)*dy(phi)))*pow(E,2*f)*pow(R,2) + (-2*dxR*w + R*dx(w))*dy(w)*pow(E,2*l)*pow(sin(y),2)))/2.;
 
 //Compute errors estimators
 real vir=0.0,errm=0.0,err22=0.0,err23=0.0,errM=0.0,errJ=0.0,ein23max=0.0,ein2233max=0.0;
@@ -283,23 +281,30 @@ if(!mpirank && converge){
 	if(QUANT) outerr << om << "\t" << Nx << "\t" << Ny << "\t" << c << "\t" << errM << "\t" << errJ << "\t" << vir << "\t" << errm << endl;
 	
 	ofstream outbs("bs.out");
+	ofstream outmat("bs_mat.out");
 	ofstream out2d1("bh_2d_1.out");
 	ofstream out2d2("bh_2d_2.out");
 	ofstream out2d3("bh_2d_3.out");
+	
+	outmat.precision(pres);
 
 	real rr,xx,theta; 
 	//int nbr=250, nbth=250;  //3D plot 0 -> \pi   
 	int nbr=250, nbth=100;    //3D plot 0 -> \pi/2  
 	int nb2=400;              //2D plot
+	int nbxc=300, nbxth=100;  //For Mathematica
 	real Rmax=50.0;
 	real rrmax=Rmax, rrmin=1e-2;
 	real xmax=Rmax, xmin=0.0;
-	real thmax=pi/2.0-1e-4, thmin=1e-4;
+	real xcmax=1.0, xcmin=1e-3;
+	real thmax=pi/2.0, thmin=0.0;
 	real rrstp=(rrmax-rrmin)/(nbr-1);
 	real thstp=(thmax-thmin)/(nbth-1);
+	real thxstp=(thmax-thmin)/(nbxth-1);
+	real xcstp=(xcmax-xcmin)/(nbxc-1);
 	real xstp=(xmax-xmin)/(nb2-1);
 	real rc,thet,rho,zz;
-	real th1,th2,th3;
+	real th,th1,th2,th3;
 	real temp, par=1.0;
 	
 	if(PLOT3D){
@@ -321,6 +326,31 @@ if(!mpirank && converge){
 				outbs << rho << "\t" << zz << "\t" << par*phi(rc,thet) << "\t" << f(rc,thet) << "\t" << l(rc,thet) <<  "\t" << fm(rc,thet) << "\t" << w(rc,thet) << "\t" << rhoT(rc,thet) << "\t" << rhoK(rc,thet)  /*<< "\t" << ein23(rc,thet) << "\t" << ein2233(rc,thet)*/ << endl;
 			}
 			outbs << endl;
+		}
+	}
+	
+	if(PLOTMAT){
+		for(int i=0;i<nbxc;i++){
+			rc=xcmin+i*xcstp;
+			for(int j=0;j<nbxth;j++){
+				th=thmin+j*thstp;
+				
+				if(th>pi/2.0){
+					if(odd) par=-1.0;
+					else par=1.0;
+					theta=pi-th;
+				}
+				else{
+					par=1.0;
+					theta=th;
+				}
+				
+				if(rc==1) temp=0.0;
+				else	  temp=rhoT(rc,theta);
+				
+				outmat << rc << "\t" << th << "\t" << par*phi(rc,theta) << "\t" << temp << "\t" << l(rc,theta)+fm(rc,theta) << endl;
+			}
+			outmat << endl;
 		}
 	}
 	
