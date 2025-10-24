@@ -1,0 +1,352 @@
+/*
+This code solves the Einstein-Klein-Gordon field equations for constructing
+spinning (mini) boson stars. The scalar field is governed by the equation:
+
+\box\Phi = \mu^2\Phi with \mu^2=1,
+
+and the convention for the Einstein equation is 4\pi*G=1.
+
+The code uses the metric parametrisation,
+
+ds^2=-exp(2*f)*dt^2 + exp(2*m)*dr^2 + exp(2*m)*r^2*d\theta^2 + exp(2*l)*r^2*sin(\theta)^2*(d\varphi - w/r^2*dt)^2,
+
+and the scalar field ansatz: \Phi = \phi(r,\theta)*exp(-i\omega*t + i*m*\varphi).
+
+It uses a compactified radial coordinate: r(x) = c*x/(1-x),
+
+and a redefinition: \hat{m} = m - l.
+*/
+
+
+//Exec : mpirun -np 4 FreeFem++-mpi -wg mpi_smin_bs.edp
+
+load "MUMPS_mpi"
+include "getARGV.idp"
+
+//Model parameters
+real om=getARGV("-om",0.9);
+real M=getARGV("-m",1.0);
+bool odd=getARGV("-odd",0);
+
+//Domain, algoruthm and other parameters
+int Region=mpirank;
+int Ndomains=mpisize;
+int Nmax=getARGV("-nmax",15);
+real STOP=getARGV("-stop",1e6);
+int Nx=getARGV("-nx",250);
+int Ny=getARGV("-ny",50);
+real c=getARGV("-c",1.0);
+real eps=1e-12; //10e-10
+int pres=12;
+
+//Gobal bool
+bool PLOT3D=getARGV("-3Dplot",0);
+bool PLOT2D=getARGV("-2Dplot",1);
+bool MAXCONST=getARGV("-const",0);
+bool QUANT=getARGV("-quant",0);
+bool RUN=getARGV("-run",1);
+bool LOAD=getARGV("-load",0);
+bool SAVE=getARGV("-save",0);
+bool FORCESAVE=getARGV("-fsave",0);
+real omload=getARGV("-omload",om);
+real Mload=getARGV("-mload",M);
+real cload=getARGV("-cload",c);
+
+//Build the mesh
+mesh Th;
+if(!mpirank){
+	if(LOAD) Th=readmesh("run/bs_c="+cload+"_m="+Mload+"_om="+omload+"_odd="+odd+".msh");
+	else Th=square(Nx,Ny,[(4*x^2/(1+x^2)^2),y^2*pi/2.0]);
+}
+
+broadcast(processor(0,mpiCommWorld),Th);
+
+//Space of functions
+func Pk=P2;
+fespace Vh(Th,[Pk,Pk,Pk,Pk,Pk]);
+fespace vh(Th,Pk);
+Vh [phi,f,l,fm,w];
+
+//Initial guess function (experimental)
+func real guessini(real xx, real yy){
+	real res=0.0;
+	
+	//real zd=9.0;
+	real rhod=1.0;
+	//real rhod=2.5;
+	//real zd=5.3;
+	
+	if(xx!=1){
+		real xc=(xx/(1.0-xx))*sin(yy);
+		real yc=(xx/(1.0-xx))*cos(yy);
+		real rc=(xx/(1.0-xx));
+		
+		//res=0.9*exp(-0.1*rc^2); //Guess m=0 (even)
+		res=0.4*yc^2*exp(-1.0*rc); //Guess m=0 (odd, two)
+	}
+	
+	return res;
+}
+
+//Rescale w if imported from another code which uses other conventions
+func real convw(real xx){
+	real res=0.0;
+	
+	if(xx!=1) res=(c*xx/(1.0-xx));
+	
+	return res;
+}
+
+//Initial guess
+if(!mpirank){
+	if(LOAD){{
+		ifstream in("run/bs_c="+cload+"_m="+Mload+"_om="+omload+"_odd="+odd+".fem");
+		in >> phi[];
+		
+		/* Possibility to change the mesh if needed */
+		Th=square(Nx,Ny,[(2*x^1/(1+x^2)),y^2*pi/2.0]);
+		//Th=square(Nx,Ny,[(4*x^2/(1+x^2)^2),y^2*pi/2.0]);
+		//Th=square(Nx,Ny,[(4*x^2/(1+x^2)^2),(4*y^2/(1+y^2)^2)*pi/2.0]);
+		
+		//Th=square(Nx,Ny,[(4*x^2/(1+x^2)^2),(y^4*(2.0-y)^4)*pi/2.0]);
+		//Th=square(Nx,Ny,[(2*x^2/(1+x^2)),y^2*pi/2.0]);
+		
+		[phi,f,l,fm,w]=[phi,f,l,fm,w];
+	};}
+	else{
+		/* Use Schwarzschild with a small but non-zero w-function */
+		[phi,f,l,fm,w]=[guessini(x,y),0.0,0.0,0.0,0.0];
+	}
+	cout.precision(pres);
+	cout << "Initial guess" << endl;
+}
+
+broadcast(processor(0,mpiCommWorld),Th);
+broadcast(processor(0,mpiCommWorld),phi[]);
+
+//Repartiton of the different cells between processors
+{
+	fespace femp0(Th,P0);	femp0 nuT;
+	for(int i=0;i<Th.nt;i++)	nuT[][i]=int(i*Ndomains/Th.nt);
+	Th=change(Th,fregion=int(nuT(x,y)));
+	[phi,f,l,fm,w]=[phi,f,l,fm,w];
+	plot(Th,wait=true);
+	//plot(nuT,wait=true,fill=true,value=true);
+}
+
+//Display the initial guess
+plot(phi,wait=true,value=true,nbiso=50,fill=true,cmm="Initial guess: phi");
+plot(f,wait=true,value=true,nbiso=50,fill=true,cmm="Initial guess: f");
+plot(l,wait=true,value=true,nbiso=50,fill=true,cmm="Initial guess: l");
+plot(fm,wait=true,value=true,nbiso=50,fill=true,cmm="Initial guess: fm");
+plot(w,wait=true,value=true,nbiso=50,fill=true,cmm="Initial guess: w");
+
+//Macros
+macro cot(u) (1.0/tan(u)) //
+macro csc(u) (1.0/sin(u)) //
+macro sec(u) (1.0/cos(u)) //
+macro E() (exp(1.0)) //
+
+macro R() (x*c/(1.0-x)) //
+macro dxR() (c/pow(-1 + x,2)) //
+macro dxxR() ((-2*c)/pow(-1 + x,3)) //
+
+//Include auxiliary files (eom and global quantities)
+include "eom.edp";
+include "quant.edp";
+
+//Variable for the NR Solver
+real[int] RHS1(phi.n); real[int] RHS2(phi.n);
+real[int] AuxVec(phi.n);
+real[int] RESIDUE(2);
+matrix<real> HessianMat;
+real eps2=eps^2;
+bool converge=0;
+
+//Principal loop
+real time1=clock();
+if(RUN){
+for(int n=0;n<Nmax;n++){
+	RHS1=EOM(phi[]);
+	Hessian(phi[],HessianMat);
+	RHS2=HessianMat^(-1)*RHS1;
+	
+	//Compute the residuals and communicate
+	mpiAllReduce(RHS1,AuxVec,mpiCommWorld,mpiSUM);
+	RESIDUE[0]=AuxVec'*AuxVec;
+	RESIDUE[1]=RHS2'*RHS2;
+	if(!mpirank)	cout << "n=" << n << " , |dJ|^2 = "  << RESIDUE[0] << " , |ddJ|^2 = " << RESIDUE[1] << endl;
+	if(RESIDUE[0] < eps2 && RESIDUE[1] < eps2){
+		converge=1; 
+		break;
+	}
+	if(RESIDUE[1] > STOP) break;
+	
+	phi[]-=1.0*RHS2;
+	plot(phi,wait=false,value=true,nbiso=50,fill=true,dim=2,cmm="Intermediate steps...");
+}}
+else converge=1;
+real tnr=clock()-time1;
+if(!mpirank) cout << "NR time :" << tnr << endl;
+
+//Display the result
+plot(phi,wait=true,value=true,nbiso=50,fill=true,cmm="Result: f");
+plot(f,wait=true,value=true,nbiso=50,fill=true,cmm="Result: f");
+plot(l,wait=true,value=true,nbiso=50,fill=true,cmm="Result: l");
+plot(fm,wait=true,value=true,nbiso=50,fill=true,cmm="Result: fm");
+plot(w,wait=true,value=true,nbiso=50,fill=true,cmm="Result: w");
+
+//Compute physical quantities
+time1=clock();
+real Q=int2d(Th)(8.0*pi*dxR*pow(E,-f + 2*fm + 3*l)*pow(phi,2)*(-(M*w) + om*pow(R,2))*sin(y));
+real J=M*Q;
+real Mass=int2d(Th)(-8.0*pi*dxR*pow(E,-f + 2*fm + 3*l)*pow(phi,2)*(2*M*om*w + (pow(E,2*f) - 2*pow(om,2))*pow(R,2))*sin(y));
+real Masymp=4.0*pi*int1d(Th,2)(c*dx(f)*sin(y));
+real Jasymp=-2.0*pi*c*int1d(Th,2)(dx(w)*sin(y));
+real gtt=int1d(Th,4)(-exp(2.0*f)*sin(y));
+
+func rhoT=pow(phi,2)*(1 + pow(E,-2*f)*pow(om,2) - pow(E,-2*f)*pow(M,2)*pow(R,-4)*pow(w,2) + pow(E,-2*l)*pow(M,2)*pow(R,-2)*pow(csc(y),2)) + 
+   pow(E,-2*(fm + l))*(pow(dxR,-2)*pow(dx(phi),2) + pow(R,-2)*pow(dy(phi),2));
+     
+func rhoK=-2*pow(E,-2*f)*pow(phi,2)*pow(R,-2)*(2*M*om*w + (pow(E,2*f) - 2*pow(om,2))*pow(R,2));
+
+func fein23=(pow(dxR,-2)*pow(E,-2*(f + fm + l))*pow(R,-3)*(-2*(-(dxR*(dy(f) + dy(fm) + dy(l))) + 
+          R*(dxy(f) + dxy(l) + (dx(f) - dx(fm) - dx(l))*dy(f) - dx(fm)*(cot(y) + dy(l)) - (dx(f) + dx(l))*(dy(fm) + dy(l)) + 4*dx(phi)*dy(phi)))*pow(E,2*f)*pow(R,2)
+        + (-2*dxR*w + R*dx(w))*dy(w)*pow(E,2*l)*pow(sin(y),2)))/2.;
+
+//Compute errors estimators
+real vir=0.0,errm=0.0,err22=0.0,err23=0.0,errM=0.0,errJ=0.0,ein23max=0.0,ein2233max=0.0;
+
+vir=virial(phi[]);
+errm=int1d(Th,1)(dy(fm));
+err23=const1(phi[]);
+err22=const2(phi[]);
+errM=1.0-(Mass/Masymp);
+if(M!=0) errJ=1.0-(J/Jasymp);
+
+if(MAXCONST){
+	//WARNING: this is very long and not optimal
+	vh ein23 = fconst1(phi[],x,y); 
+	vh ein2233 = fconst2(phi[],x,y); 
+
+	ein23max = ein23[].max;
+	ein2233max = ein2233[].max;
+}
+
+real tquant=clock()-time1;
+
+//Display the quantities
+time1=clock();
+if(!mpirank){
+	cout.precision(pres);
+	cout << endl << endl;
+	cout << "Convergence=" << converge << endl;
+	cout << "Errors indicators:" << endl;
+	cout << "Errors from virial=" << vir << endl;
+	cout << "Errors on the z-axis=" << errm << endl;
+	cout << "Errors from Ein(r,r)-Ein(th,th)=" << err22 << "\t (val. max=" << ein2233max << ")" << endl;
+	cout << "Errors from Ein(r,th)=" << err23 << "\t (val. max=" << ein23max << ")" << endl;
+	cout << "Errors from mass=" << errM << endl;
+	cout << "Errors from angular momentum=" << errJ << endl;
+	cout << endl;
+	cout << "Input: m=" << M << "\t omega" << om << endl;
+	cout << endl;
+	cout << "Output:" << endl;
+	cout << "M(inf)=" << Masymp/(4.0*pi) << "\t M(Komar)=" << Mass/(4.0*pi) << endl;
+	cout << "J(inf)=" << Jasymp/(4.0*pi) << "\t J(Komar)=" << J/(4.0*pi) << endl;
+	cout << "Q=" << Q << endl;
+	cout << "gtt(r=0)=" << gtt << endl;
+	cout << endl << endl;
+}
+real tconsole=clock()-time1;
+
+//Save the configuration
+time1=clock();
+if(SAVE && !mpirank && (converge || FORCESAVE)){
+	ofstream out("run/bs_c="+c+"_m="+M+"_om="+om+"_odd="+odd+".fem");
+	out << phi[];
+	Th=change(Th,fregion=0);
+	savemesh(Th,"run/bs_c="+c+"_m="+M+"_om="+om+"_odd="+odd+".msh");
+}
+real tsave=clock()-time1;
+
+//Save with gnuplot
+time1=clock();
+
+if(!mpirank && converge){
+	ofstream outquant("quant.out",append);
+	ofstream outerr("err.out",append);
+	outquant.precision(pres);
+	outerr.precision(pres);
+	
+	if(QUANT) outquant << om << "\t" << Mass/(4.0*pi) << "\t" << Masymp/(4.0*pi) << "\t" << Q/(4.0*pi) << "\t" << J/(4.0*pi) << "\t" << Jasymp/(4.0*pi) << "\t" << gtt << endl;
+	if(QUANT) outerr << om << "\t" << Nx << "\t" << Ny << "\t" << c << "\t" << errM << "\t" << errJ << "\t" << vir << "\t" << errm << endl;
+	
+	ofstream outbs("bs.out");
+	ofstream out2d1("bh_2d_1.out");
+	ofstream out2d2("bh_2d_2.out");
+	ofstream out2d3("bh_2d_3.out");
+
+	real rr,xx,theta; 
+	//int nbr=250, nbth=250;  //3D plot 0 -> \pi   
+	int nbr=250, nbth=100;    //3D plot 0 -> \pi/2  
+	int nb2=400;              //2D plot
+	real Rmax=50.0;
+	real rrmax=Rmax, rrmin=1e-2;
+	real xmax=Rmax, xmin=0.0;
+	real thmax=pi/2.0-1e-4, thmin=1e-4;
+	real rrstp=(rrmax-rrmin)/(nbr-1);
+	real thstp=(thmax-thmin)/(nbth-1);
+	real xstp=(xmax-xmin)/(nb2-1);
+	real rc,thet,rho,zz;
+	real th1,th2,th3;
+	real temp, par=1.0;
+	
+	if(PLOT3D){
+		for(int i=0;i<nbr;i++){
+			rr=rrmin+i*rrstp;
+			for(int j=0;j<nbth;j++){
+				theta=thmin+j*thstp;
+				rho=rr*sin(theta);
+				zz=rr*cos(theta);
+				rc=rr/(rr+c);
+				if(theta <= pi/2.0){ 
+					thet=theta;
+				}
+				else if(theta > pi/2.0 && theta <= pi){
+					thet=pi-theta;
+					if(odd) par=-1.0;
+				}
+			
+				outbs << rho << "\t" << zz << "\t" << par*phi(rc,thet) << "\t" << f(rc,thet) << "\t" << l(rc,thet) <<  "\t" << fm(rc,thet) << "\t" << w(rc,thet) << "\t" << rhoT(rc,thet) << "\t" << rhoK(rc,thet)  /*<< "\t" << ein23(rc,thet) << "\t" << ein2233(rc,thet)*/ << endl;
+			}
+			outbs << endl;
+		}
+	}
+	
+	if(PLOT2D){	
+		for(int i=0;i<nb2;i++){
+			xx=xmin+i*xstp;
+			th1=1e-6; th2=pi/4.0; th3=pi/2.0;
+			rc=xx/(xx+c);
+			
+			out2d1 << xx << "\t" << par*phi(rc,th1) << "\t" << f(rc,th1) << "\t" << l(rc,th1) <<  "\t" << fm(rc,th1) << "\t" << w(rc,th1) << "\t" << rhoT(rc,th1) << "\t" << rhoK(rc,th1) << endl;
+			out2d2 << xx << "\t" << par*phi(rc,th2) << "\t" << f(rc,th2) << "\t" << l(rc,th2) <<  "\t" << fm(rc,th2) << "\t" << w(rc,th2) << "\t" << rhoT(rc,th2) << "\t" << rhoK(rc,th2) << endl;
+			out2d3 << xx << "\t" << par*phi(rc,th3) << "\t" << f(rc,th3) << "\t" << l(rc,th3) <<  "\t" << fm(rc,th3) << "\t" << w(rc,th3) << "\t" << rhoT(rc,th3) << "\t" << rhoK(rc,th3) << endl;
+		}
+	}
+}
+
+real toutput=clock()-time1;
+
+
+if(!mpirank){
+	cout << endl << endl;
+	cout << "NR time :" << tnr << endl;
+	cout << "Quantities time :" << tquant << endl;
+	cout << "Console time :" << tconsole << endl;
+	cout << "Save time :" << tsave << endl;
+	cout << "Output time :" << toutput << endl;
+	cout << endl << endl;
+}
+	

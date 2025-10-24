@@ -1,0 +1,74 @@
+//Global quantities (computed using int2d)
+func real virial(real[int] & XX){
+	Vh [pphi,ff,ll,mm,ww]; pphi[]=XX; //Copy the d.o.f locally
+	
+	real res=int2d(Th)(pow(dxR,-2)*pow(E,-ff - 2*ll - mm)*pow(R,-2)*(-(R*ww*(ww*(dx(ff) - 2*dx(ll) - dx(mm)) - 2*dx(ww))*pow(dxR,2)*pow(E,2*(2*ll + mm))*pow(M,2)*pow(pphi,2)) - 
+     pow(dxR,3)*pow(E,2*(2*ll + mm))*pow(M,2)*pow(pphi,2)*pow(ww,2) - 
+     pow(dxR,2)*pow(R,3)*(dy(pphi)*(2*dx(pphi)*(dy(ll) + dy(mm)) + (dx(ff) - dx(mm))*dy(pphi))*pow(E,2*(ff + ll)) - 
+        M*pow(E,2*(ll + mm))*pow(pphi,2)*(-4*om*ww*dx(ll)*pow(E,2*ll) - 2*om*ww*dx(mm)*pow(E,2*ll) - 2*om*dx(ww)*pow(E,2*ll) - M*dx(mm)*pow(E,2*ff)*pow(csc(y),2) + 
+           dx(ff)*(2*om*ww*pow(E,2*ll) - M*pow(E,2*ff)*pow(csc(y),2)))) - 
+     dxR*pow(E,2*ll)*pow(R,4)*(3*pow(dxR,2)*pow(E,2*(ll + mm))*(pow(E,2*ff) - pow(om,2))*pow(pphi,2) + pow(E,2*ff)*pow(dx(pphi),2)) - 
+     pow(E,2*ll)*pow(R,5)*(pow(dxR,2)*pow(E,2*(ll + mm))*((2*dx(ll) + dx(mm))*(pow(E,2*ff) - pow(om,2)) + dx(ff)*(pow(E,2*ff) + pow(om,2)))*pow(pphi,2) + 
+        (dx(ff) + 2*dx(ll) + dx(mm))*pow(E,2*ff)*pow(dx(pphi),2)) - 
+     pow(dxR,3)*pow(R,2)*(M*pow(E,2*(ll + mm))*pow(pphi,2)*(2*om*ww*pow(E,2*ll) + M*pow(E,2*ff)*pow(csc(y),2)) + pow(E,2*(ff + ll))*pow(dy(pphi),2)))*sin(y));
+	
+	return res;
+}
+
+func real const1(real[int] & XX){
+	Vh [pphi,ff,ll,mm,ww]; pphi[]=XX; //Copy the d.o.f locally
+	
+	real res=int2d(Th)((pow(dxR,-2)*pow(E,-2*(ff + ll + mm))*pow(R,-3)*(-2*(-(dxR*(dy(ff) + dy(ll) + dy(mm))) + 
+          R*(dxy(ff) + dxy(ll) + (dx(ff) - dx(ll) - dx(mm))*dy(ff) - dx(mm)*(cot(y) + dy(ll)) - (dx(ff) + dx(ll))*(dy(ll) + dy(mm)) + 4*dx(pphi)*dy(pphi)))*
+        pow(E,2*ff)*pow(R,2) + (-2*dxR*ww + R*dx(ww))*dy(ww)*pow(E,2*ll)*pow(sin(y),2)))/2.);
+	
+	return res;
+}
+
+func real const2(real[int] & XX){
+	Vh [pphi,ff,ll,mm,ww]; pphi[]=XX; //Copy the d.o.f locally
+	
+	real res=int2d(Th)((pow(dxR,-3)*pow(E,-2*(ff + ll + mm))*pow(R,-4)*(2*pow(E,2*ff)*pow(R,2)*
+        (R*(dx(ff) + dx(ll) + 2*dx(mm))*pow(dxR,2) + dxxR*(dx(ff) + dx(ll))*pow(R,2) - 
+          dxR*pow(R,2)*(-2*(dx(ff) + dx(ll))*(dx(ll) + dx(mm)) + dxx(ff) + dxx(ll) + pow(dx(ff),2) + pow(dx(ll),2) + 4*pow(dx(pphi),2)) + 
+          pow(dxR,3)*(-2*cot(y)*dy(mm) - 2*dy(ll)*dy(mm) - 2*dy(ff)*(dy(ll) + dy(mm)) + dyy(ff) + dyy(ll) + pow(dy(ff),2) - pow(dy(ll),2) + 4*pow(dy(pphi),2))) + 
+       dxR*pow(E,2*ll)*(-4*dxR*R*ww*dx(ww) + pow(R,2)*pow(dx(ww),2) + pow(dxR,2)*(4*pow(ww,2) - pow(dy(ww),2)))*pow(sin(y),2)))/2.);
+	
+	return res;
+}
+
+//"Regularization" of functions for vh constructions (remove the boundaries)
+func real fconst1(real[int] & XX, real xx, real yy){
+	Vh [pphi,ff,ll,mm,ww]; pphi[]=XX; //Copy the d.o.f locally
+	
+	real res=0.0;
+	real r, dxr, dxxr;
+	
+	if(xx > 0.0 && xx < 1.0 && yy > 0.0){
+		r = xx*c/(1.0-xx);
+		dxr = (c/pow(-1 + xx,2));
+		dxxr = ((-2*c)/pow(-1 + xx,3));
+		res=abs((pow(dxr,-2)*pow(E,-2*(ff + ll + mm))*pow(r,-3)*(-2*(-(dxr*(dy(ff) + dy(ll) + dy(mm))) + r*(dxy(ff) + dxy(ll) + (dx(ff) - dx(ll) - dx(mm))*dy(ff) - dx(mm)*(cot(yy) + dy(ll)) - (dx(ff) + dx(ll))*(dy(ll) + dy(mm)) + 4*dx(pphi)*dy(pphi)))*pow(E,2*ff)*pow(r,2) + (-2*dxr*ww + r*dx(ww))*dy(ww)*pow(E,2*ll)*pow(sin(yy),2)))/2.);
+	}
+	
+	return res;
+}
+
+func real fconst2(real[int] & XX, real xx, real yy){
+	Vh [pphi,ff,ll,mm,ww]; pphi[]=XX; //Copy the d.o.f locally
+	
+	real res=0.0;
+	real r, dxr, dxxr;
+	
+	if(xx > 0.0 && xx < 1.0 && yy > 0.0){
+		r = xx*c/(1.0-xx);
+		dxr = (c/pow(-1 + xx,2));
+		dxxr = ((-2*c)/pow(-1 + xx,3));
+		res=abs((pow(dxr,-3)*pow(E,-2*(ff + ll + mm))*pow(r,-4)*(2*pow(E,2*ff)*pow(r,2)*(r*(dx(ff) + dx(ll) + 2*dx(mm))*pow(dxr,2) + dxxr*(dx(ff) + dx(ll))*pow(r,2) - dxr*pow(r,2)*(-2*(dx(ff) + dx(ll))*(dx(ll) + dx(mm)) + dxx(ff) + dxx(ll) + pow(dx(ff),2) + pow(dx(ll),2) + 4*pow(dx(pphi),2)) + pow(dxr,3)*(-2*cot(y)*dy(mm) - 2*dy(ll)*dy(mm) - 2*dy(ff)*(dy(ll) + dy(mm)) + dyy(ff) + dyy(ll) + pow(dy(ff),2) - pow(dy(ll),2) + 4*pow(dy(pphi),2))) + dxr*pow(E,2*ll)*(-4*dxr*r*ww*dx(ww) + pow(r,2)*pow(dx(ww),2) + pow(dxr,2)*(4*pow(ww,2) - pow(dy(ww),2)))*pow(sin(y),2)))/2.);
+       	}
+	
+	return res;
+}
+
+
+

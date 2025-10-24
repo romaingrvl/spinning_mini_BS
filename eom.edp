@@ -1,0 +1,113 @@
+//Implementation of the weak EOM + their variations for NR
+
+/*
+The FreeFem syntax for Dirichlet conditions is "+on(x,uX=0)".
+
+x: boundary number with
+1: symmetry-axis, \vartheta=0, 
+2: asympototic border, R=\infty, 
+3: equatorial plane, \vartheta=\pi/2,
+4: event horizon, R=r_H.
+
+uX: variation function of unknown which has the Dirichlet condition.
+
+/!\ This syntax makes the value at x of the unknown function X frozen on during the iterations,
+/!\ the initial guess must respect the desired condition.
+*/
+
+int[int] lab;
+if(odd && M==0) lab=[2,3,4];
+else if(!odd && M==0) lab=[2];
+else if(odd && M>0) lab=[1,2,3,4];
+else if(!odd && M>0) lab=[1,2,4];
+
+func real[int] EOM(real[int] & XX){
+	Vh [pphi,ff,ll,mm,ww]; pphi[]=XX; //Copy the d.o.f locally
+        
+        varf vDJ([uphi,uf,ul,um,uw],[dphi,df,dl,dm,dw])=int2d(Th,Region)((pow(dxR,-1)*pow(E,-ff + ll)*(-2*pow(E,2*ff)*(dy(df)*dy(ff)*pow(dxR,2) + dx(df)*dx(ff)*pow(R,2)) - 
+       2*pow(E,2*ff)*(dy(dl)*dy(ll)*pow(dxR,2) + dx(dl)*dx(ll)*pow(R,2)) - 2*pow(E,2*ff)*(dy(dm)*(dy(ff) + dy(ll) + dy(mm))*pow(dxR,2) + dx(dm)*dx(mm)*pow(R,2)) - 
+       2*pow(E,2*ff)*(dx(dphi)*dx(pphi)*pow(R,2) + pow(dxR,2)*(dy(dphi)*dy(pphi) + dphi*pphi*pow(E,2*mm)*pow(M,2)*pow(csc(y),2))) + 
+       2*dl*dxR*pow(E,2*ff)*(R*(dx(ff) + dx(ll)) + dxR*(cot(y)*(dy(ff) + dy(ll)) + 4*pow(E,2*mm)*pow(M,2)*pow(pphi,2)*pow(csc(y),2))) - 
+       2*pow(E,2*ff)*(dy(dw)*dy(ww)*pow(dxR,2) + dx(dw)*dx(ww)*pow(R,2) + 
+          2*dw*(R*dx(ll)*(3*dxR*ww - R*dx(ww)) + R*dx(ff)*(-(dxR*ww) + R*dx(ww)) + 
+             dxR*(R*dx(ww) + dxR*(ww - (cot(y) - dy(ff) + dy(ll))*dy(ww) + 4*M*pow(E,2*mm)*pow(pphi,2)*(M*ww - om*pow(R,2))*pow(csc(y),2))))) + 
+       2*dphi*pphi*pow(dxR,2)*pow(E,2*(ll + mm))*pow(R,-2)*(-(pow(E,2*ff)*pow(R,4)) + pow(M*ww - om*pow(R,2),2)) - 
+       4*dl*dxR*ww*dx(ww)*pow(E,2*ll)*pow(R,-1)*pow(sin(y),2) + dl*pow(E,2*ll)*pow(dx(ww),2)*pow(sin(y),2) + 
+       dm*pow(R,-2)*(4*dxR*R*ww*dx(ww)*pow(E,2*ll) - pow(E,2*ll)*pow(R,2)*pow(dx(ww),2) + 
+          2*pow(dxR,2)*(-2*pow(E,2*ff)*pow(R,2)*pow(csc(y),2)*((cot(y) + dy(ll))*(dy(ll) + dy(mm)) + dy(ff)*(cot(y) + 2*dy(ll) + dy(mm)) + 
+                2*pow(E,2*mm)*pow(M,2)*pow(pphi,2)*pow(csc(y),2) - 2*pow(dy(pphi),2)) - pow(E,2*ll)*(2*pow(ww,2) + pow(dy(ww),2))))*pow(sin(y),2) + 
+       dl*pow(dxR,2)*pow(E,2*ll)*pow(R,-2)*(4*pow(E,2*(ff + mm))*pow(pphi,2)*pow(R,4) + (4*pow(ww,2) + pow(dy(ww),2))*pow(sin(y),2)) + 
+       df*pow(E,2*ll)*pow(R,-2)*(4*pow(dxR,2)*pow(E,2*mm)*pow(pphi,2)*(pow(E,2*ff)*pow(R,4) - 2*pow(M*ww - om*pow(R,2),2)) - 
+          (-4*dxR*R*ww*dx(ww) + pow(R,2)*pow(dx(ww),2) + pow(dxR,2)*(4*pow(ww,2) + pow(dy(ww),2)))*pow(sin(y),2)))*sin(y))/2.)
+        +on(lab,uphi=0)+on(2,uf=0)+on(2,ul=0)+on(1,2,um=0)+on(2,4,uw=0);
+									
+	real[int] AuxVec=vDJ(0,Vh);
+	return AuxVec;
+}
+
+func int Hessian(real[int] & XX, matrix & Hess){
+	Vh [pphi,ff,ll,mm,ww]; pphi[]=XX; //Copy the d.o.f locally
+   
+   	varf vH([uphi,uf,ul,um,uw],[dphi,df,dl,dm,dw])=int2d(Th,Region)(dxR*uphi*pow(E,-ff + ll + 2*mm)*pow(R,-2)*(pow(E,2*ff)*pow(R,2)*(-((dphi - 4*(df + dl)*pphi)*pow(E,2*ll)*pow(R,2)) - 
+         M*(M*(dphi + 8*pphi*(-dl + dm + 2*dw*ww)) - 16*dw*om*pphi*pow(R,2))*pow(csc(y),2)) + (dphi - 8*df*pphi)*pow(E,2*ll)*pow(M*ww - om*pow(R,2),2))*sin(y) + 
+   2*dxR*pphi*um*pow(E,-ff + ll + 2*mm)*pow(R,-2)*(pow(E,2*ff)*pow(R,2)*
+       (-((dphi - 2*(df + dl)*pphi)*pow(E,2*ll)*pow(R,2)) - M*(M*(dphi + 4*pphi*(-dl + dm + 2*dw*ww)) - 8*dw*om*pphi*pow(R,2))*pow(csc(y),2)) + 
+      (dphi - 4*df*pphi)*pow(E,2*ll)*pow(M*ww - om*pow(R,2),2))*sin(y) + 
+   (ul*pow(dxR,-1)*pow(E,-ff + ll)*pow(R,-2)*(-2*dy(dm)*(dy(ff) + dy(ll) + dy(mm))*pow(dxR,2)*pow(E,2*ff)*pow(R,2) - 
+        2*dy(dw)*dy(ww)*pow(dxR,2)*pow(E,2*ff)*pow(R,2) - 2*pow(E,2*ff)*pow(R,2)*(dy(df)*dy(ff)*pow(dxR,2) + dx(df)*dx(ff)*pow(R,2)) - 
+        2*pow(E,2*ff)*pow(R,2)*(dy(dl)*dy(ll)*pow(dxR,2) + dx(dl)*dx(ll)*pow(R,2)) - 2*dx(dm)*dx(mm)*pow(E,2*ff)*pow(R,4) - 
+        2*dx(dphi)*dx(pphi)*pow(E,2*ff)*pow(R,4) - 2*dx(dw)*dx(ww)*pow(E,2*ff)*pow(R,4) - 
+        2*pow(dxR,2)*pow(E,2*ff)*pow(R,2)*(dy(dphi)*dy(pphi) + dphi*pphi*pow(E,2*mm)*pow(M,2)*pow(csc(y),2)) + 
+        2*dl*dxR*pow(E,2*ff)*pow(R,2)*(R*(dx(ff) + dx(ll)) + dxR*(cot(y)*(dy(ff) + dy(ll)) + 4*pow(E,2*mm)*pow(M,2)*pow(pphi,2)*pow(csc(y),2))) - 
+        4*dw*pow(E,2*ff)*pow(R,2)*(R*dx(ll)*(3*dxR*ww - R*dx(ww)) + R*dx(ff)*(-(dxR*ww) + R*dx(ww)) + 
+           dxR*(R*dx(ww) + dxR*(ww - (cot(y) - dy(ff) + dy(ll))*dy(ww) + 4*M*pow(E,2*mm)*pow(pphi,2)*(M*ww - om*pow(R,2))*pow(csc(y),2)))) - 
+        4*dm*pow(dxR,2)*pow(E,2*ff)*pow(R,2)*((cot(y) + dy(ll))*(dy(ll) + dy(mm)) + dy(ff)*(cot(y) + 2*dy(ll) + dy(mm)) + 
+           2*pow(E,2*mm)*pow(M,2)*pow(pphi,2)*pow(csc(y),2) - 2*pow(dy(pphi),2)) + 
+        8*df*pow(dxR,2)*pow(E,2*(ll + mm))*pow(pphi,2)*(pow(E,2*ff)*pow(R,4) - 2*pow(M*ww - om*pow(R,2),2)) - 
+        6*dphi*pphi*pow(dxR,2)*pow(E,2*(ll + mm))*(pow(E,2*ff)*pow(R,4) - pow(M*ww - om*pow(R,2),2)) - 12*dl*dxR*R*ww*dx(ww)*pow(E,2*ll)*pow(sin(y),2) + 
+        12*dm*dxR*R*ww*dx(ww)*pow(E,2*ll)*pow(sin(y),2) + 12*dl*pow(dxR,2)*pow(E,2*ll)*pow(ww,2)*pow(sin(y),2) - 
+        12*dm*pow(dxR,2)*pow(E,2*ll)*pow(ww,2)*pow(sin(y),2) - 3*dm*pow(E,2*ll)*(pow(R,2)*pow(dx(ww),2) + 2*pow(dxR,2)*pow(dy(ww),2))*pow(sin(y),2) - 
+        2*df*pow(E,2*ll)*(-4*dxR*R*ww*dx(ww) + pow(R,2)*pow(dx(ww),2) + pow(dxR,2)*(4*pow(ww,2) + pow(dy(ww),2)))*pow(sin(y),2) + 
+        df*pow(E,2*ll)*(4*pow(dxR,2)*pow(E,2*mm)*pow(pphi,2)*(pow(E,2*ff)*pow(R,4) - 2*pow(M*ww - om*pow(R,2),2)) - 
+           (-4*dxR*R*ww*dx(ww) + pow(R,2)*pow(dx(ww),2) + pow(dxR,2)*(4*pow(ww,2) + pow(dy(ww),2)))*pow(sin(y),2)) + 
+        3*dl*pow(E,2*ll)*(pow(R,2)*pow(dx(ww),2)*pow(sin(y),2) + pow(dxR,2)*(4*pow(E,2*(ff + mm))*pow(pphi,2)*pow(R,4) + pow(dy(ww),2)*pow(sin(y),2))))*sin(y))/2. + 
+   uw*(-2*dw*pow(E,ff + ll)*(-(R*dx(ff)) + 3*R*dx(ll) + dxR*(1 + 4*pow(E,2*mm)*pow(M,2)*pow(pphi,2)*pow(csc(y),2)))*sin(y) + 
+      2*pow(E,-ff + 3*ll)*pow(R,-2)*(dxR*M*pphi*(dphi - 4*df*pphi)*pow(E,2*mm)*(M*ww - om*pow(R,2)) + (df - dl + dm)*(-2*dxR*ww + R*dx(ww))*pow(sin(y),2))*sin(y)) + 
+   (uf*pow(dxR,-1)*pow(E,-ff + ll)*(-8*dm*csc(y)*pow(dxR,2)*pow(E,2*(ff + mm))*pow(M,2)*pow(pphi,2) + 
+        2*dl*pow(dxR,2)*pow(E,2*ff)*(cos(y)*(dy(ff) + dy(ll)) + 4*csc(y)*pow(E,2*mm)*pow(M,2)*pow(pphi,2)) + 
+        4*dl*dxR*ww*dx(ww)*pow(E,2*ll)*pow(R,-1)*pow(sin(y),3) - 4*dm*dxR*ww*dx(ww)*pow(E,2*ll)*pow(R,-1)*pow(sin(y),3) - 
+        4*dl*pow(dxR,2)*pow(E,2*ll)*pow(R,-2)*pow(ww,2)*pow(sin(y),3) + 4*dm*pow(dxR,2)*pow(E,2*ll)*pow(R,-2)*pow(ww,2)*pow(sin(y),3) + 
+        dm*pow(E,2*ll)*pow(R,-2)*(pow(R,2)*pow(dx(ww),2) + 2*pow(dxR,2)*pow(dy(ww),2))*pow(sin(y),3) + 
+        df*pow(E,2*ll)*pow(R,-2)*(-4*dxR*R*ww*dx(ww) + pow(R,2)*pow(dx(ww),2) + pow(dxR,2)*(4*pow(ww,2) + pow(dy(ww),2)))*pow(sin(y),3) + 
+        2*dl*dxR*R*(dx(ff) + dx(ll))*pow(E,2*ff)*sin(y) - 4*dw*dxR*R*dx(ww)*pow(E,2*ff)*sin(y) - 
+        4*dm*(cot(y) + dy(ll))*(dy(ll) + dy(mm))*pow(dxR,2)*pow(E,2*ff)*sin(y) - 2*dy(dm)*(dy(ff) + dy(ll) + dy(mm))*pow(dxR,2)*pow(E,2*ff)*sin(y) - 
+        4*dm*dy(ff)*(cot(y) + 2*dy(ll) + dy(mm))*pow(dxR,2)*pow(E,2*ff)*sin(y) - 2*dy(dw)*dy(ww)*pow(dxR,2)*pow(E,2*ff)*sin(y) + 
+        4*dw*(cot(y) - dy(ff) + dy(ll))*dy(ww)*pow(dxR,2)*pow(E,2*ff)*sin(y) - 2*dx(dm)*dx(mm)*pow(E,2*ff)*pow(R,2)*sin(y) - 
+        2*dx(dphi)*dx(pphi)*pow(E,2*ff)*pow(R,2)*sin(y) - 2*dx(dw)*dx(ww)*pow(E,2*ff)*pow(R,2)*sin(y) - 
+        4*dphi*pphi*pow(dxR,2)*pow(E,2*(ff + ll + mm))*pow(R,2)*sin(y) + 8*df*pow(dxR,2)*pow(E,2*(ff + ll + mm))*pow(pphi,2)*pow(R,2)*sin(y) + 
+        8*dl*pow(dxR,2)*pow(E,2*(ff + ll + mm))*pow(pphi,2)*pow(R,2)*sin(y) - 2*pow(E,2*ff)*(dy(df)*dy(ff)*pow(dxR,2) + dx(df)*dx(ff)*pow(R,2))*sin(y) - 
+        2*pow(E,2*ff)*(dy(dl)*dy(ll)*pow(dxR,2) + dx(dl)*dx(ll)*pow(R,2))*sin(y) - 
+        2*pow(dxR,2)*pow(E,2*ff)*(dy(dphi)*dy(pphi) + dphi*pphi*pow(E,2*mm)*pow(M,2)*pow(csc(y),2))*sin(y) + 
+        4*dw*pow(E,2*ff)*pow(R,2)*((-dx(ff) + dx(ll))*dx(ww) + 4*M*om*pow(dxR,2)*pow(E,2*mm)*pow(pphi,2)*pow(csc(y),2))*sin(y) - 
+        4*dw*dxR*ww*pow(E,2*ff)*(-(R*dx(ff)) + 3*R*dx(ll) + dxR*(1 + 4*pow(E,2*mm)*pow(M,2)*pow(pphi,2)*pow(csc(y),2)))*sin(y) + 
+        8*dm*pow(dxR,2)*pow(E,2*ff)*pow(dy(pphi),2)*sin(y) - 4*df*pow(dxR,2)*pow(E,2*(ll + mm))*pow(pphi,2)*pow(R,-2)*
+         (pow(E,2*ff)*pow(R,4) - 2*pow(M*ww - om*pow(R,2),2))*sin(y) + 
+        2*dphi*pphi*pow(dxR,2)*pow(E,2*(ll + mm))*pow(R,-2)*(pow(E,2*ff)*pow(R,4) - pow(M*ww - om*pow(R,2),2))*sin(y) - 
+        dl*pow(E,2*ll)*pow(R,-2)*(pow(R,2)*pow(dx(ww),2)*pow(sin(y),2) + pow(dxR,2)*(4*pow(E,2*(ff + mm))*pow(pphi,2)*pow(R,4) + pow(dy(ww),2)*pow(sin(y),2)))*sin(y)
+        ))/2. + pow(dxR,-1)*pow(E,-ff + ll)*pow(R,-2)*(-((dy(dm) + 2*dm*(cot(y) + dy(ff) + dy(ll)))*dy(um)*pow(dxR,2)*pow(E,2*ff)*pow(R,2)*sin(y)) - 
+      (dy(dphi) - 8*dm*dy(pphi))*dy(uphi)*pow(dxR,2)*pow(E,2*ff)*pow(R,2)*sin(y) + 
+      dx(ul)*(dxR*(dl - 6*dw*ww) - R*dx(dl) + 2*dw*R*dx(ww))*pow(E,2*ff)*pow(R,3)*sin(y) - 
+      dx(uf)*(-(dxR*(dl + 2*dw*ww)) + R*(dx(df) + 2*dw*dx(ww)))*pow(E,2*ff)*pow(R,3)*sin(y) - dx(dm)*dx(um)*pow(E,2*ff)*pow(R,4)*sin(y) - 
+      dx(dphi)*dx(uphi)*pow(E,2*ff)*pow(R,4)*sin(y) + R*dx(uw)*(-((R*dx(dw) + 2*dw*(dxR + R*(dx(ff) - dx(ll))))*pow(E,2*ff)*pow(R,2)) - 
+         (df - dl + dm)*(-2*dxR*ww + R*dx(ww))*pow(E,2*ll)*pow(sin(y),2))*sin(y) - 
+      dy(uw)*pow(dxR,2)*((dy(dw) - 2*dw*(cot(y) - dy(ff) + dy(ll)))*pow(E,2*ff)*pow(R,2) + (df - dl + 2*dm)*dy(ww)*pow(E,2*ll)*pow(sin(y),2))*sin(y) + 
+      dy(ul)*pow(dxR,2)*pow(E,2*ff)*pow(R,2)*((dl - 2*dm)*cos(y) - (dy(dl) + dy(dm) + 2*dm*(2*(dy(ff) + dy(ll)) + dy(mm)) - 2*dw*dy(ww))*sin(y)) + 
+      dy(uf)*pow(dxR,2)*pow(E,2*ff)*pow(R,2)*((dl - 2*dm)*cos(y) - (dy(df) + dy(dm) + 4*dm*dy(ll) + 2*dm*dy(mm) + 2*dw*dy(ww))*sin(y))))
+        +on(lab,uphi=0)+on(2,uf=0)+on(2,ul=0)+on(1,2,um=0)+on(2,4,uw=0);
+			
+	Hess=vH(Vh,Vh);	//Compute the Hessian
+	set(Hess,sparams="-ksp_view",solver=sparsesolver,master=-1);
+	
+	return 0;
+}
+

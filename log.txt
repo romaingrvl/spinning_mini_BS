@@ -1,0 +1,791 @@
+-- FreeFem++ v4.14 (Tue 24 Sep 19:22:07 CEST 2024 - git v4.14-80-g02aa2c91)
+   file : mpi_spin_bs.edp
+ Load: lg_fem lg_mesh lg_mesh3 eigenvalue parallelempi 
+    1 : /**
+    2 : This code solves the Einstein-Klein-Gordon field equations for constructing
+    3 : spinning (mini) boson stars. The scalar field is governed by the equation:
+    4 : 
+    5 : \box\Phi = \mu^2\Phi with \mu^2=1,
+    6 : 
+    7 : and the convention for the Einstein equation is 4\pi*G=1.
+    8 : 
+    9 : The code uses the metric parametrisation,
+   10 : 
+   11 : ds^2=-exp(2*f)*dt^2 + exp(2*m)*dr^2 + exp(2*m)*r^2*d\theta^2 + exp(2*l)*r^2*sin(\theta)^2*(d\varphi - w/r^2*dt)^2,
+   12 : 
+   13 : and the scalar field ansatz: \Phi = \phi(r,\theta)*exp(-i\omega*t + i*m*\varphi).
+   14 : 
+   15 : It uses a compactified radial coordinate: r(x) = c*x/(1-x),
+   16 : 
+   17 : and a redefinition: \hat{m} = m - l.
+   18 : */
+   19 : 
+   20 : 
+   21 : ////Exec : mpirun -np 4 FreeFem++-mpi -wg mpi_smin_bs.edp
+   22 : 
+   23 : load "MUMPS_mpi"
+   24 : include "getARGV.idp" //// for gestion of FreeFem++ argument and in version 3.10-1 FH
+    2 :  //// F. Hecht 
+    3 :  //// Usage:  getARGV(n,defaultvalue) // get the fist used default valeu
+    4 :  ////  or     getARGV(after,defaultvalue) // get the arg after after 
+    5 :  //// the type of delfaut value given the return type: int,double, string
+    6 :  //// Modif version 3.54-2  Jan 2018 (add ones include)
+    7 :  IFMACRO(!getARGVidp)
+    8 &  macro getARGVidp 1 //
+    9 &  
+   10 &  
+   11 &  func int usedARGV(int n)
+   12 & {
+   13 &   int k=1,ii=1,kk=1,ret=-1;
+   14 &   for(int i=1;i<ARGV.n;++i)
+   15 &    {
+   16 &    // cout <<i<< " "<< ARGV[i] << " " <<(ARGV[i]=="-v") << " " << kk << "==" 
+   17 &    //      << n << " " << ARGV[i].rfind("dp") << " " <<ARGV[i].length-2  << endl;
+   18 &         
+   19 &        if(ARGV[i]=="-v") i++;
+   20 &        else if(ARGV[i]=="-fglut") i++;
+   21 &        else if(ARGV[i]=="-ffg") i++;
+   22 &        else if(ARGV[i]=="-glut") i++;
+   23 &        else if(ARGV[i]=="-f") i++;
+   24 &        else if(ARGV[i]=="-nw") ii;
+   25 &        else if(ARGV[i]=="-wait") ii;
+   26 &        else if(ARGV[i]=="-ne") ii;
+   27 &        else if(ARGV[i]=="-cd") ii;
+   28 &        //else if(ARGV[i].rfind(".edp")==ARGV[i].length-4 ) ii;
+   29 &        else if(i==1) ii;
+   30 &        else if(kk++==n) {ret=i;}
+   31 &       // else cout << " +++ \n";
+   32 &      }
+   33 &    //  cout << ret << endl;
+   34 &     return ret;
+   35 & }
+   36 & 
+   37 & func int usedARGV(string after)
+   38 & {
+   39 &   int ret=-1;
+   40 &   for(int i=ARGV.n-1;i>=0;--i)        
+   41 &        if(ARGV[i]==after) { ret=++i; break;}
+   42 &   if(ARGV.n<ret) ret=-1;
+   43 &   return ret;
+   44 & }
+   45 & 
+   46 & func int getARGV(int n,int default)
+   47 & {
+   48 &    int d=default;
+   49 &    int k=usedARGV(n);
+   50 &    if(k>0) d=strtol(ARGV[k]);
+   51 &     return d;
+   52 & }
+   53 & func real getARGV(int n,real default)
+   54 & {
+   55 &    real d=default;
+   56 &    int k=usedARGV(n);
+   57 &    if(k>0) d=strtod(ARGV[k]);
+   58 &    return d;
+   59 & }
+   60 & func string getARGV(int n,string default)
+   61 & {
+   62 &    string d=default;
+   63 &    int k=usedARGV(n);
+   64 &    if(k>0) d=ARGV[k];
+   65 &     return d;
+   66 & }
+   67 & 
+   68 & func int getARGV(string after,int default)
+   69 & {
+   70 &    int d=default;
+   71 &    int k=usedARGV(after);
+   72 &    if(k>0) d=strtol(ARGV[k]);
+   73 &     return d;
+   74 & }
+   75 & func real getARGV(string after,real default)
+   76 & {
+   77 &    real d=default;
+   78 &    int k=usedARGV(after);
+   79 &    if(k>0) d=strtod(ARGV[k]);
+   80 &    return d;
+   81 & }
+   82 & func string getARGV(string after,string default)
+   83 & {
+   84 &    string d=default;
+   85 &    int k=usedARGV(after);
+   86 &    if(k>0) d=ARGV[k];
+   87 &     return d;
+   88 & }
+   89 & 
+   90 & /*
+   91 & cout << getARGV(1,100) << endl;
+   92 & cout << getARGV(2,200.) << endl;
+   93 & cout << getARGV(3,"300.000") << endl;
+   94 & cout << getARGV("-n"," xxx") << endl;
+   95 & */
+   96 & ENDIFMACRO
+    8 @  macro getARGVidp 1 ////
+    9 @  
+   10 @  
+   11 @  func int usedARGV(int n)
+   12 @ {
+   13 @   int k=1,ii=1,kk=1,ret=-1;
+   14 @   for(int i=1;i<ARGV.n;++i)
+   15 @    {
+   16 @    //// cout <<i<< " "<< ARGV[i] << " " <<(ARGV[i]=="-v") << " " << kk << "==" 
+   17 @    ////      << n << " " << ARGV[i].rfind("dp") << " " <<ARGV[i].length-2  << endl;
+   18 @         
+   19 @        if(ARGV[i]=="-v") i++;
+   20 @        else if(ARGV[i]=="-fglut") i++;
+   21 @        else if(ARGV[i]=="-ffg") i++;
+   22 @        else if(ARGV[i]=="-glut") i++;
+   23 @        else if(ARGV[i]=="-f") i++;
+   24 @        else if(ARGV[i]=="-nw") ii;
+   25 @        else if(ARGV[i]=="-wait") ii;
+   26 @        else if(ARGV[i]=="-ne") ii;
+   27 @        else if(ARGV[i]=="-cd") ii;
+   28 @        ////else if(ARGV[i].rfind(".edp")==ARGV[i].length-4 ) ii;
+   29 @        else if(i==1) ii;
+   30 @        else if(kk++==n) {ret=i;}
+   31 @       //// else cout << " +++ \n";
+   32 @      }
+   33 @    ////  cout << ret << endl;
+   34 @     return ret;
+   35 @ }
+   36 @ 
+   37 @ func int usedARGV(string after)
+   38 @ {
+   39 @   int ret=-1;
+   40 @   for(int i=ARGV.n-1;i>=0;--i)        
+   41 @        if(ARGV[i]==after) { ret=++i; break;}
+   42 @   if(ARGV.n<ret) ret=-1;
+   43 @   return ret;
+   44 @ }
+   45 @ 
+   46 @ func int getARGV(int n,int default)
+   47 @ {
+   48 @    int d=default;
+   49 @    int k=usedARGV(n);
+   50 @    if(k>0) d=strtol(ARGV[k]);
+   51 @     return d;
+   52 @ }
+   53 @ func real getARGV(int n,real default)
+   54 @ {
+   55 @    real d=default;
+   56 @    int k=usedARGV(n);
+   57 @    if(k>0) d=strtod(ARGV[k]);
+   58 @    return d;
+   59 @ }
+   60 @ func string getARGV(int n,string default)
+   61 @ {
+   62 @    string d=default;
+   63 @    int k=usedARGV(n);
+   64 @    if(k>0) d=ARGV[k];
+   65 @     return d;
+   66 @ }
+   67 @ 
+   68 @ func int getARGV(string after,int default)
+   69 @ {
+   70 @    int d=default;
+   71 @    int k=usedARGV(after);
+   72 @    if(k>0) d=strtol(ARGV[k]);
+   73 @     return d;
+   74 @ }
+   75 @ func real getARGV(string after,real default)
+   76 @ {
+   77 @    real d=default;
+   78 @    int k=usedARGV(after);
+   79 @    if(k>0) d=strtod(ARGV[k]);
+   80 @    return d;
+   81 @ }
+   82 @ func string getARGV(string after,string default)
+   83 @ {
+   84 @    string d=default;
+   85 @    int k=usedARGV(after);
+   86 @    if(k>0) d=ARGV[k];
+   87 @     return d;
+   88 @ }
+   89 @ 
+   90 @ /**
+   91 @ cout << getARGV(1,100) << endl;
+   92 @ cout << getARGV(2,200.) << endl;
+   93 @ cout << getARGV(3,"300.000") << endl;
+   94 @ cout << getARGV("-n"," xxx") << endl;
+   95 @ */
+   96 @ 
+   25 : 
+   26 : ////Model parameters
+   27 : real om=getARGV("-om",0.9);
+   28 : real M=getARGV("-m",1.0);
+   29 : bool odd=getARGV("-odd",0);
+   30 : 
+   31 : ////Domain, algoruthm and other parameters
+   32 : int Region=mpirank;
+   33 : int Ndomains=mpisize;
+   34 : int Nmax=getARGV("-nmax",15);
+   35 : real STOP=getARGV("-stop",1e6);
+   36 : int Nx=getARGV("-nx",250);
+   37 : int Ny=getARGV("-ny",50);
+   38 : real c=getARGV("-c",1.0);
+   39 : real eps=1e-12; ////10e-10
+   40 : int pres=12;
+   41 : 
+   42 : ////Gobal bool
+   43 : bool PLOT3D=getARGV("-3Dplot",0);
+   44 : bool PLOT2D=getARGV("-2Dplot",1);
+   45 : bool MAXCONST=getARGV("-const",0);
+   46 : bool QUANT=getARGV("-quant",0);
+   47 : bool RUN=getARGV("-run",1);
+   48 : bool LOAD=getARGV("-load",0);
+   49 : bool SAVE=getARGV("-save",0);
+   50 : bool FORCESAVE=getARGV("-fsave",0);
+   51 : real omload=getARGV("-omload",om);
+   52 : real Mload=getARGV("-mload",M);
+   53 : real cload=getARGV("-cload",c);
+   54 : 
+   55 : ////Build the mesh
+   56 : mesh Th;
+   57 : if(!mpirank){
+   58 : 	if(LOAD) Th=readmesh("run/bs_c="+cload+"_m="+Mload+"_om="+omload+"_odd="+odd+".msh");
+   59 : 	else Th=square(Nx,Ny,[(4*x^2/(1+x^2)^2),y^2*pi/2.0]);
+   60 : }
+   61 : 
+   62 : broadcast(processor(0,mpiCommWorld),Th);
+   63 : 
+   64 : ////Space of functions
+   65 : func Pk=P2;
+   66 : fespace Vh(Th,[Pk,Pk,Pk,Pk,Pk]);
+   67 : fespace vh(Th,Pk);
+   68 : Vh [phi,f,l,fm,w];
+   69 : 
+   70 : ////Initial guess function
+   71 : func real guessini(real xx, real yy){
+   72 : 	real res=0.0;
+   73 : 	
+   74 : 	////real zd=9.0;
+   75 : 	real rhod=1.0;
+   76 : 	////real rhod=2.5;
+   77 : 	////real zd=5.3;
+   78 : 	
+   79 : 	if(xx!=1){
+   80 : 		real xc=(xx/(1.0-xx))*sin(yy);
+   81 : 		real yc=(xx/(1.0-xx))*cos(yy);
+   82 : 		real rc=(xx/(1.0-xx));
+   83 : 		
+   84 : 		////res=0.9*exp(-0.1*rc^2); //Guess m=0 (even)
+   85 : 		res=0.4*yc^2*exp(-1.0*rc); ////Guess m=0 (odd, two)
+   86 : 	}
+   87 : 	
+   88 : 	return res;
+   89 : }
+   90 : 
+   91 : func real convw(real xx){
+   92 : 	real res=0.0;
+   93 : 	
+   94 : 	if(xx!=1) res=(c*xx/(1.0-xx));
+   95 : 	
+   96 : 	return res;
+   97 : }
+   98 : 
+   99 : ////Initial guess
+  100 : if(!mpirank){
+  101 : 	if(LOAD){{
+  102 : 		ifstream in("run/bs_c="+cload+"_m="+Mload+"_om="+omload+"_odd="+odd+".fem");
+  103 : 		in >> phi[];
+  104 : 		
+  105 : 		/** Possibility to change the mesh if needed */
+  106 : 		Th=square(Nx,Ny,[(2*x^1/(1+x^2)),y^2*pi/2.0]);
+  107 : 		////Th=square(Nx,Ny,[(4*x^2/(1+x^2)^2),y^2*pi/2.0]);
+  108 : 		////Th=square(Nx,Ny,[(4*x^2/(1+x^2)^2),(4*y^2/(1+y^2)^2)*pi/2.0]);
+  109 : 		
+  110 : 		////Th=square(Nx,Ny,[(4*x^2/(1+x^2)^2),(y^4*(2.0-y)^4)*pi/2.0]);
+  111 : 		////Th=square(Nx,Ny,[(2*x^2/(1+x^2)),y^2*pi/2.0]);
+  112 : 		
+  113 : 		[phi,f,l,fm,w]=[phi,f,l,fm,w];
+  114 : 	};}
+  115 : 	else{
+  116 : 		/** Use Schwarzschild with a small but non-zero w-function */
+  117 : 		[phi,f,l,fm,w]=[guessini(x,y),0.0,0.0,0.0,0.0];
+  118 : 	}
+  119 : 	cout.precision(pres);
+  120 : 	cout << "Initial guess" << endl;
+  121 : 	/**
+  122 : 	cout << f(1,0.0) << "\t" << f(1,pi/2.0) << "\t" << f(1,pi/4.0) << endl;
+  123 : 	cout << l(1,0.0) << "\t" << l(1,pi/2.0) << "\t" << l(1,pi/4.0) << endl;
+  124 : 	cout << fm(1,0.0) << "\t" << fm(1,pi/2.0) << "\t" << fm(1,pi/4.0) << endl;
+  125 : 	cout << phi(1,0.0) << "\t" << phi(1,pi/2.0) << "\t" << phi(1,pi/4.0) << endl;
+  126 : 	cout << w(1,0.0) << "\t" << w(1,pi/2.0) << "\t" << w(1,pi/4.0) << endl;
+  127 : 	*/
+  128 : }
+  129 : 
+  130 : broadcast(processor(0,mpiCommWorld),Th);
+  131 : broadcast(processor(0,mpiCommWorld),phi[]);
+  132 : 
+  133 : ////Repartiton of the different cells between processors
+  134 : {
+  135 : 	fespace femp0(Th,P0);	femp0 nuT;
+  136 : 	for(int i=0;i<Th.nt;i++)	nuT[][i]=int(i*Ndomains/Th.nt);
+  137 : 	Th=change(Th,fregion=int(nuT(x,y)));
+  138 : 	[phi,f,l,fm,w]=[phi,f,l,fm,w];
+  139 : 	plot(Th,wait=true);
+  140 : 	////plot(nuT,wait=true,fill=true,value=true);
+  141 : }
+  142 : 
+  143 : ////Display the initial guess
+  144 : plot(phi,wait=true,value=true,nbiso=50,fill=true,cmm="Initial guess: phi");
+  145 : plot(f,wait=true,value=true,nbiso=50,fill=true,cmm="Initial guess: f");
+  146 : plot(l,wait=true,value=true,nbiso=50,fill=true,cmm="Initial guess: l");
+  147 : plot(fm,wait=true,value=true,nbiso=50,fill=true,cmm="Initial guess: fm");
+  148 : plot(w,wait=true,value=true,nbiso=50,fill=true,cmm="Initial guess: w");
+  149 : 
+  150 : ////Macros
+  151 : macro cot(u) (1.0/tan(u))  )  ////
+  152 : macro csc(u) (1.0/sin(u))  )  ////
+  153 : macro sec(u) (1.0/cos(u))  )  ////
+  154 : macro E() (exp(1.0)) ////
+  155 : 
+  156 : macro R() (x*c/(1.0-x)) ////
+  157 : macro dxR() (c/pow(-1 + x,2)) ////
+  158 : macro dxxR() ((-2*c)/pow(-1 + x,3)) ////
+  159 : 
+  160 : ////Include auxiliary files (eom and global quantities)
+  161 : include "eom.edp"////Implementation of the weak EOM + their variations for NR
+    2 : 
+    3 : /**
+    4 : Here FreeFem syntax for Dirichlet conditions is "+on(x,uX=0)".
+    5 : 
+    6 : x: boundary number with
+    7 : 1: symmetry-axis, \vartheta=0, 
+    8 : 2: asympototic border, R=\infty, 
+    9 : 3: equatorial plane, \vartheta=\pi/2,
+   10 : 4: event horizon, R=r_H.
+   11 : 
+   12 : uX: var function of unknown which has the Dirichlet condition.
+   13 : 
+   14 : /!\ This syntax makes the value of the unknown function X frozen during the iterations,
+   15 : /!\ the initial guess must respect the desired condition.
+   16 : */
+   17 : 
+   18 : int[int] lab;
+   19 : if(odd && M==0) lab=[2,3,4];
+   20 : else if(!odd && M==0) lab=[2];
+   21 : else if(odd && M>0) lab=[1,2,3,4];
+   22 : else if(!odd && M>0) lab=[1,2,4];
+   23 : 
+   24 : func real[int] EOM(real[int] & XX){
+   25 : 	Vh [pphi,ff,ll,mm,ww]; pphi[]=XX; ////Copy the d.o.f locally
+   26 :         
+   27 :         varf vDJ([uphi,uf,ul,um,uw],[dphi,df,dl,dm,dw])=int2d(Th,Region)((pow(dxR     (c/pow(-1 + x,2)) ,-1)*pow(E   (exp(1.0)) ,-ff + ll)*(-2*pow(E   (exp(1.0)) ,2*ff)*(dy(df)*dy(ff)*pow(dxR     (c/pow(-1 + x,2)) ,2) + dx(df)*dx(ff)*pow(R   (x*c/(1.0-x)) ,2)) - 
+   28 :        2*pow(E   (exp(1.0)) ,2*ff)*(dy(dl)*dy(ll)*pow(dxR     (c/pow(-1 + x,2)) ,2) + dx(dl)*dx(ll)*pow(R   (x*c/(1.0-x)) ,2)) - 2*pow(E   (exp(1.0)) ,2*ff)*(dy(dm)*(dy(ff) + dy(ll) + dy(mm))*pow(dxR     (c/pow(-1 + x,2)) ,2) + dx(dm)*dx(mm)*pow(R   (x*c/(1.0-x)) ,2)) - 
+   29 :        2*pow(E   (exp(1.0)) ,2*ff)*(dx(dphi)*dx(pphi)*pow(R   (x*c/(1.0-x)) ,2) + pow(dxR     (c/pow(-1 + x,2)) ,2)*(dy(dphi)*dy(pphi) + dphi*pphi*pow(E   (exp(1.0)) ,2*mm)*pow(M,2)*pow(csc(y)   (1.0/sin(y)) ,2))) + 
+   30 :        2*dl*dxR     (c/pow(-1 + x,2)) *pow(E   (exp(1.0)) ,2*ff)*(R   (x*c/(1.0-x)) *(dx(ff) + dx(ll)) + dxR     (c/pow(-1 + x,2)) *(cot(y)   (1.0/tan(y)) *(dy(ff) + dy(ll)) + 4*pow(E   (exp(1.0)) ,2*mm)*pow(M,2)*pow(pphi,2)*pow(csc(y)   (1.0/sin(y)) ,2))) - 
+   31 :        2*pow(E   (exp(1.0)) ,2*ff)*(dy(dw)*dy(ww)*pow(dxR     (c/pow(-1 + x,2)) ,2) + dx(dw)*dx(ww)*pow(R   (x*c/(1.0-x)) ,2) + 
+   32 :           2*dw*(R   (x*c/(1.0-x)) *dx(ll)*(3*dxR     (c/pow(-1 + x,2)) *ww - R   (x*c/(1.0-x)) *dx(ww)) + R   (x*c/(1.0-x)) *dx(ff)*(-(dxR     (c/pow(-1 + x,2)) *ww) + R   (x*c/(1.0-x)) *dx(ww)) + 
+   33 :              dxR     (c/pow(-1 + x,2)) *(R   (x*c/(1.0-x)) *dx(ww) + dxR     (c/pow(-1 + x,2)) *(ww - (cot(y)   (1.0/tan(y))  - dy(ff) + dy(ll))*dy(ww) + 4*M*pow(E   (exp(1.0)) ,2*mm)*pow(pphi,2)*(M*ww - om*pow(R   (x*c/(1.0-x)) ,2))*pow(csc(y)   (1.0/sin(y)) ,2))))) + 
+   34 :        2*dphi*pphi*pow(dxR     (c/pow(-1 + x,2)) ,2)*pow(E   (exp(1.0)) ,2*(ll + mm))*pow(R   (x*c/(1.0-x)) ,-2)*(-(pow(E   (exp(1.0)) ,2*ff)*pow(R   (x*c/(1.0-x)) ,4)) + pow(M*ww - om*pow(R   (x*c/(1.0-x)) ,2),2)) - 
+   35 :        4*dl*dxR     (c/pow(-1 + x,2)) *ww*dx(ww)*pow(E   (exp(1.0)) ,2*ll)*pow(R   (x*c/(1.0-x)) ,-1)*pow(sin(y),2) + dl*pow(E   (exp(1.0)) ,2*ll)*pow(dx(ww),2)*pow(sin(y),2) + 
+   36 :        dm*pow(R   (x*c/(1.0-x)) ,-2)*(4*dxR     (c/pow(-1 + x,2)) *R   (x*c/(1.0-x)) *ww*dx(ww)*pow(E   (exp(1.0)) ,2*ll) - pow(E   (exp(1.0)) ,2*ll)*pow(R   (x*c/(1.0-x)) ,2)*pow(dx(ww),2) + 
+   37 :           2*pow(dxR     (c/pow(-1 + x,2)) ,2)*(-2*pow(E   (exp(1.0)) ,2*ff)*pow(R   (x*c/(1.0-x)) ,2)*pow(csc(y)   (1.0/sin(y)) ,2)*((cot(y)   (1.0/tan(y))  + dy(ll))*(dy(ll) + dy(mm)) + dy(ff)*(cot(y)   (1.0/tan(y))  + 2*dy(ll) + dy(mm)) + 
+   38 :                 2*pow(E   (exp(1.0)) ,2*mm)*pow(M,2)*pow(pphi,2)*pow(csc(y)   (1.0/sin(y)) ,2) - 2*pow(dy(pphi),2)) - pow(E   (exp(1.0)) ,2*ll)*(2*pow(ww,2) + pow(dy(ww),2))))*pow(sin(y),2) + 
+   39 :        dl*pow(dxR     (c/pow(-1 + x,2)) ,2)*pow(E   (exp(1.0)) ,2*ll)*pow(R   (x*c/(1.0-x)) ,-2)*(4*pow(E   (exp(1.0)) ,2*(ff + mm))*pow(pphi,2)*pow(R   (x*c/(1.0-x)) ,4) + (4*pow(ww,2) + pow(dy(ww),2))*pow(sin(y),2)) + 
+   40 :        df*pow(E   (exp(1.0)) ,2*ll)*pow(R   (x*c/(1.0-x)) ,-2)*(4*pow(dxR     (c/pow(-1 + x,2)) ,2)*pow(E   (exp(1.0)) ,2*mm)*pow(pphi,2)*(pow(E   (exp(1.0)) ,2*ff)*pow(R   (x*c/(1.0-x)) ,4) - 2*pow(M*ww - om*pow(R   (x*c/(1.0-x)) ,2),2)) - 
+   41 :           (-4*dxR     (c/pow(-1 + x,2)) *R   (x*c/(1.0-x)) *ww*dx(ww) + pow(R   (x*c/(1.0-x)) ,2)*pow(dx(ww),2) + pow(dxR     (c/pow(-1 + x,2)) ,2)*(4*pow(ww,2) + pow(dy(ww),2)))*pow(sin(y),2)))*sin(y))/2.)
+   42 :         +on(lab,uphi=0)+on(2,uf=0)+on(2,ul=0)+on(1,2,um=0)+on(2,4,uw=0);
+   43 : 									
+   44 : 	real[int] AuxVec=vDJ(0,Vh);
+   45 : 	return AuxVec;
+   46 : }
+   47 : 
+   48 : func int Hessian(real[int] & XX, matrix & Hess){
+   49 : 	Vh [pphi,ff,ll,mm,ww]; pphi[]=XX; ////Copy the d.o.f locally
+   50 :    
+   51 :    	varf vH([uphi,uf,ul,um,uw],[dphi,df,dl,dm,dw])=int2d(Th,Region)(dxR     (c/pow(-1 + x,2)) *uphi*pow(E   (exp(1.0)) ,-ff + ll + 2*mm)*pow(R   (x*c/(1.0-x)) ,-2)*(pow(E   (exp(1.0)) ,2*ff)*pow(R   (x*c/(1.0-x)) ,2)*(-((dphi - 4*(df + dl)*pphi)*pow(E   (exp(1.0)) ,2*ll)*pow(R   (x*c/(1.0-x)) ,2)) - 
+   52 :          M*(M*(dphi + 8*pphi*(-dl + dm + 2*dw*ww)) - 16*dw*om*pphi*pow(R   (x*c/(1.0-x)) ,2))*pow(csc(y)   (1.0/sin(y)) ,2)) + (dphi - 8*df*pphi)*pow(E   (exp(1.0)) ,2*ll)*pow(M*ww - om*pow(R   (x*c/(1.0-x)) ,2),2))*sin(y) + 
+   53 :    2*dxR     (c/pow(-1 + x,2)) *pphi*um*pow(E   (exp(1.0)) ,-ff + ll + 2*mm)*pow(R   (x*c/(1.0-x)) ,-2)*(pow(E   (exp(1.0)) ,2*ff)*pow(R   (x*c/(1.0-x)) ,2)*
+   54 :        (-((dphi - 2*(df + dl)*pphi)*pow(E   (exp(1.0)) ,2*ll)*pow(R   (x*c/(1.0-x)) ,2)) - M*(M*(dphi + 4*pphi*(-dl + dm + 2*dw*ww)) - 8*dw*om*pphi*pow(R   (x*c/(1.0-x)) ,2))*pow(csc(y)   (1.0/sin(y)) ,2)) + 
+   55 :       (dphi - 4*df*pphi)*pow(E   (exp(1.0)) ,2*ll)*pow(M*ww - om*pow(R   (x*c/(1.0-x)) ,2),2))*sin(y) + 
+   56 :    (ul*pow(dxR     (c/pow(-1 + x,2)) ,-1)*pow(E   (exp(1.0)) ,-ff + ll)*pow(R   (x*c/(1.0-x)) ,-2)*(-2*dy(dm)*(dy(ff) + dy(ll) + dy(mm))*pow(dxR     (c/pow(-1 + x,2)) ,2)*pow(E   (exp(1.0)) ,2*ff)*pow(R   (x*c/(1.0-x)) ,2) - 
+   57 :         2*dy(dw)*dy(ww)*pow(dxR     (c/pow(-1 + x,2)) ,2)*pow(E   (exp(1.0)) ,2*ff)*pow(R   (x*c/(1.0-x)) ,2) - 2*pow(E   (exp(1.0)) ,2*ff)*pow(R   (x*c/(1.0-x)) ,2)*(dy(df)*dy(ff)*pow(dxR     (c/pow(-1 + x,2)) ,2) + dx(df)*dx(ff)*pow(R   (x*c/(1.0-x)) ,2)) - 
+   58 :         2*pow(E   (exp(1.0)) ,2*ff)*pow(R   (x*c/(1.0-x)) ,2)*(dy(dl)*dy(ll)*pow(dxR     (c/pow(-1 + x,2)) ,2) + dx(dl)*dx(ll)*pow(R   (x*c/(1.0-x)) ,2)) - 2*dx(dm)*dx(mm)*pow(E   (exp(1.0)) ,2*ff)*pow(R   (x*c/(1.0-x)) ,4) - 
+   59 :         2*dx(dphi)*dx(pphi)*pow(E   (exp(1.0)) ,2*ff)*pow(R   (x*c/(1.0-x)) ,4) - 2*dx(dw)*dx(ww)*pow(E   (exp(1.0)) ,2*ff)*pow(R   (x*c/(1.0-x)) ,4) - 
+   60 :         2*pow(dxR     (c/pow(-1 + x,2)) ,2)*pow(E   (exp(1.0)) ,2*ff)*pow(R   (x*c/(1.0-x)) ,2)*(dy(dphi)*dy(pphi) + dphi*pphi*pow(E   (exp(1.0)) ,2*mm)*pow(M,2)*pow(csc(y)   (1.0/sin(y)) ,2)) + 
+   61 :         2*dl*dxR     (c/pow(-1 + x,2)) *pow(E   (exp(1.0)) ,2*ff)*pow(R   (x*c/(1.0-x)) ,2)*(R   (x*c/(1.0-x)) *(dx(ff) + dx(ll)) + dxR     (c/pow(-1 + x,2)) *(cot(y)   (1.0/tan(y)) *(dy(ff) + dy(ll)) + 4*pow(E   (exp(1.0)) ,2*mm)*pow(M,2)*pow(pphi,2)*pow(csc(y)   (1.0/sin(y)) ,2))) - 
+   62 :         4*dw*pow(E   (exp(1.0)) ,2*ff)*pow(R   (x*c/(1.0-x)) ,2)*(R   (x*c/(1.0-x)) *dx(ll)*(3*dxR     (c/pow(-1 + x,2)) *ww - R   (x*c/(1.0-x)) *dx(ww)) + R   (x*c/(1.0-x)) *dx(ff)*(-(dxR     (c/pow(-1 + x,2)) *ww) + R   (x*c/(1.0-x)) *dx(ww)) + 
+   63 :            dxR     (c/pow(-1 + x,2)) *(R   (x*c/(1.0-x)) *dx(ww) + dxR     (c/pow(-1 + x,2)) *(ww - (cot(y)   (1.0/tan(y))  - dy(ff) + dy(ll))*dy(ww) + 4*M*pow(E   (exp(1.0)) ,2*mm)*pow(pphi,2)*(M*ww - om*pow(R   (x*c/(1.0-x)) ,2))*pow(csc(y)   (1.0/sin(y)) ,2)))) - 
+   64 :         4*dm*pow(dxR     (c/pow(-1 + x,2)) ,2)*pow(E   (exp(1.0)) ,2*ff)*pow(R   (x*c/(1.0-x)) ,2)*((cot(y)   (1.0/tan(y))  + dy(ll))*(dy(ll) + dy(mm)) + dy(ff)*(cot(y)   (1.0/tan(y))  + 2*dy(ll) + dy(mm)) + 
+   65 :            2*pow(E   (exp(1.0)) ,2*mm)*pow(M,2)*pow(pphi,2)*pow(csc(y)   (1.0/sin(y)) ,2) - 2*pow(dy(pphi),2)) + 
+   66 :         8*df*pow(dxR     (c/pow(-1 + x,2)) ,2)*pow(E   (exp(1.0)) ,2*(ll + mm))*pow(pphi,2)*(pow(E   (exp(1.0)) ,2*ff)*pow(R   (x*c/(1.0-x)) ,4) - 2*pow(M*ww - om*pow(R   (x*c/(1.0-x)) ,2),2)) - 
+   67 :         6*dphi*pphi*pow(dxR     (c/pow(-1 + x,2)) ,2)*pow(E   (exp(1.0)) ,2*(ll + mm))*(pow(E   (exp(1.0)) ,2*ff)*pow(R   (x*c/(1.0-x)) ,4) - pow(M*ww - om*pow(R   (x*c/(1.0-x)) ,2),2)) - 12*dl*dxR     (c/pow(-1 + x,2)) *R   (x*c/(1.0-x)) *ww*dx(ww)*pow(E   (exp(1.0)) ,2*ll)*pow(sin(y),2) + 
+   68 :         12*dm*dxR     (c/pow(-1 + x,2)) *R   (x*c/(1.0-x)) *ww*dx(ww)*pow(E   (exp(1.0)) ,2*ll)*pow(sin(y),2) + 12*dl*pow(dxR     (c/pow(-1 + x,2)) ,2)*pow(E   (exp(1.0)) ,2*ll)*pow(ww,2)*pow(sin(y),2) - 
+   69 :         12*dm*pow(dxR     (c/pow(-1 + x,2)) ,2)*pow(E   (exp(1.0)) ,2*ll)*pow(ww,2)*pow(sin(y),2) - 3*dm*pow(E   (exp(1.0)) ,2*ll)*(pow(R   (x*c/(1.0-x)) ,2)*pow(dx(ww),2) + 2*pow(dxR     (c/pow(-1 + x,2)) ,2)*pow(dy(ww),2))*pow(sin(y),2) - 
+   70 :         2*df*pow(E   (exp(1.0)) ,2*ll)*(-4*dxR     (c/pow(-1 + x,2)) *R   (x*c/(1.0-x)) *ww*dx(ww) + pow(R   (x*c/(1.0-x)) ,2)*pow(dx(ww),2) + pow(dxR     (c/pow(-1 + x,2)) ,2)*(4*pow(ww,2) + pow(dy(ww),2)))*pow(sin(y),2) + 
+   71 :         df*pow(E   (exp(1.0)) ,2*ll)*(4*pow(dxR     (c/pow(-1 + x,2)) ,2)*pow(E   (exp(1.0)) ,2*mm)*pow(pphi,2)*(pow(E   (exp(1.0)) ,2*ff)*pow(R   (x*c/(1.0-x)) ,4) - 2*pow(M*ww - om*pow(R   (x*c/(1.0-x)) ,2),2)) - 
+   72 :            (-4*dxR     (c/pow(-1 + x,2)) *R   (x*c/(1.0-x)) *ww*dx(ww) + pow(R   (x*c/(1.0-x)) ,2)*pow(dx(ww),2) + pow(dxR     (c/pow(-1 + x,2)) ,2)*(4*pow(ww,2) + pow(dy(ww),2)))*pow(sin(y),2)) + 
+   73 :         3*dl*pow(E   (exp(1.0)) ,2*ll)*(pow(R   (x*c/(1.0-x)) ,2)*pow(dx(ww),2)*pow(sin(y),2) + pow(dxR     (c/pow(-1 + x,2)) ,2)*(4*pow(E   (exp(1.0)) ,2*(ff + mm))*pow(pphi,2)*pow(R   (x*c/(1.0-x)) ,4) + pow(dy(ww),2)*pow(sin(y),2))))*sin(y))/2. + 
+   74 :    uw*(-2*dw*pow(E   (exp(1.0)) ,ff + ll)*(-(R   (x*c/(1.0-x)) *dx(ff)) + 3*R   (x*c/(1.0-x)) *dx(ll) + dxR     (c/pow(-1 + x,2)) *(1 + 4*pow(E   (exp(1.0)) ,2*mm)*pow(M,2)*pow(pphi,2)*pow(csc(y)   (1.0/sin(y)) ,2)))*sin(y) + 
+   75 :       2*pow(E   (exp(1.0)) ,-ff + 3*ll)*pow(R   (x*c/(1.0-x)) ,-2)*(dxR     (c/pow(-1 + x,2)) *M*pphi*(dphi - 4*df*pphi)*pow(E   (exp(1.0)) ,2*mm)*(M*ww - om*pow(R   (x*c/(1.0-x)) ,2)) + (df - dl + dm)*(-2*dxR     (c/pow(-1 + x,2)) *ww + R   (x*c/(1.0-x)) *dx(ww))*pow(sin(y),2))*sin(y)) + 
+   76 :    (uf*pow(dxR     (c/pow(-1 + x,2)) ,-1)*pow(E   (exp(1.0)) ,-ff + ll)*(-8*dm*csc(y)   (1.0/sin(y)) *pow(dxR     (c/pow(-1 + x,2)) ,2)*pow(E   (exp(1.0)) ,2*(ff + mm))*pow(M,2)*pow(pphi,2) + 
+   77 :         2*dl*pow(dxR     (c/pow(-1 + x,2)) ,2)*pow(E   (exp(1.0)) ,2*ff)*(cos(y)*(dy(ff) + dy(ll)) + 4*csc(y)   (1.0/sin(y)) *pow(E   (exp(1.0)) ,2*mm)*pow(M,2)*pow(pphi,2)) + 
+   78 :         4*dl*dxR     (c/pow(-1 + x,2)) *ww*dx(ww)*pow(E   (exp(1.0)) ,2*ll)*pow(R   (x*c/(1.0-x)) ,-1)*pow(sin(y),3) - 4*dm*dxR     (c/pow(-1 + x,2)) *ww*dx(ww)*pow(E   (exp(1.0)) ,2*ll)*pow(R   (x*c/(1.0-x)) ,-1)*pow(sin(y),3) - 
+   79 :         4*dl*pow(dxR     (c/pow(-1 + x,2)) ,2)*pow(E   (exp(1.0)) ,2*ll)*pow(R   (x*c/(1.0-x)) ,-2)*pow(ww,2)*pow(sin(y),3) + 4*dm*pow(dxR     (c/pow(-1 + x,2)) ,2)*pow(E   (exp(1.0)) ,2*ll)*pow(R   (x*c/(1.0-x)) ,-2)*pow(ww,2)*pow(sin(y),3) + 
+   80 :         dm*pow(E   (exp(1.0)) ,2*ll)*pow(R   (x*c/(1.0-x)) ,-2)*(pow(R   (x*c/(1.0-x)) ,2)*pow(dx(ww),2) + 2*pow(dxR     (c/pow(-1 + x,2)) ,2)*pow(dy(ww),2))*pow(sin(y),3) + 
+   81 :         df*pow(E   (exp(1.0)) ,2*ll)*pow(R   (x*c/(1.0-x)) ,-2)*(-4*dxR     (c/pow(-1 + x,2)) *R   (x*c/(1.0-x)) *ww*dx(ww) + pow(R   (x*c/(1.0-x)) ,2)*pow(dx(ww),2) + pow(dxR     (c/pow(-1 + x,2)) ,2)*(4*pow(ww,2) + pow(dy(ww),2)))*pow(sin(y),3) + 
+   82 :         2*dl*dxR     (c/pow(-1 + x,2)) *R   (x*c/(1.0-x)) *(dx(ff) + dx(ll))*pow(E   (exp(1.0)) ,2*ff)*sin(y) - 4*dw*dxR     (c/pow(-1 + x,2)) *R   (x*c/(1.0-x)) *dx(ww)*pow(E   (exp(1.0)) ,2*ff)*sin(y) - 
+   83 :         4*dm*(cot(y)   (1.0/tan(y))  + dy(ll))*(dy(ll) + dy(mm))*pow(dxR     (c/pow(-1 + x,2)) ,2)*pow(E   (exp(1.0)) ,2*ff)*sin(y) - 2*dy(dm)*(dy(ff) + dy(ll) + dy(mm))*pow(dxR     (c/pow(-1 + x,2)) ,2)*pow(E   (exp(1.0)) ,2*ff)*sin(y) - 
+   84 :         4*dm*dy(ff)*(cot(y)   (1.0/tan(y))  + 2*dy(ll) + dy(mm))*pow(dxR     (c/pow(-1 + x,2)) ,2)*pow(E   (exp(1.0)) ,2*ff)*sin(y) - 2*dy(dw)*dy(ww)*pow(dxR     (c/pow(-1 + x,2)) ,2)*pow(E   (exp(1.0)) ,2*ff)*sin(y) + 
+   85 :         4*dw*(cot(y)   (1.0/tan(y))  - dy(ff) + dy(ll))*dy(ww)*pow(dxR     (c/pow(-1 + x,2)) ,2)*pow(E   (exp(1.0)) ,2*ff)*sin(y) - 2*dx(dm)*dx(mm)*pow(E   (exp(1.0)) ,2*ff)*pow(R   (x*c/(1.0-x)) ,2)*sin(y) - 
+   86 :         2*dx(dphi)*dx(pphi)*pow(E   (exp(1.0)) ,2*ff)*pow(R   (x*c/(1.0-x)) ,2)*sin(y) - 2*dx(dw)*dx(ww)*pow(E   (exp(1.0)) ,2*ff)*pow(R   (x*c/(1.0-x)) ,2)*sin(y) - 
+   87 :         4*dphi*pphi*pow(dxR     (c/pow(-1 + x,2)) ,2)*pow(E   (exp(1.0)) ,2*(ff + ll + mm))*pow(R   (x*c/(1.0-x)) ,2)*sin(y) + 8*df*pow(dxR     (c/pow(-1 + x,2)) ,2)*pow(E   (exp(1.0)) ,2*(ff + ll + mm))*pow(pphi,2)*pow(R   (x*c/(1.0-x)) ,2)*sin(y) + 
+   88 :         8*dl*pow(dxR     (c/pow(-1 + x,2)) ,2)*pow(E   (exp(1.0)) ,2*(ff + ll + mm))*pow(pphi,2)*pow(R   (x*c/(1.0-x)) ,2)*sin(y) - 2*pow(E   (exp(1.0)) ,2*ff)*(dy(df)*dy(ff)*pow(dxR     (c/pow(-1 + x,2)) ,2) + dx(df)*dx(ff)*pow(R   (x*c/(1.0-x)) ,2))*sin(y) - 
+   89 :         2*pow(E   (exp(1.0)) ,2*ff)*(dy(dl)*dy(ll)*pow(dxR     (c/pow(-1 + x,2)) ,2) + dx(dl)*dx(ll)*pow(R   (x*c/(1.0-x)) ,2))*sin(y) - 
+   90 :         2*pow(dxR     (c/pow(-1 + x,2)) ,2)*pow(E   (exp(1.0)) ,2*ff)*(dy(dphi)*dy(pphi) + dphi*pphi*pow(E   (exp(1.0)) ,2*mm)*pow(M,2)*pow(csc(y)   (1.0/sin(y)) ,2))*sin(y) + 
+   91 :         4*dw*pow(E   (exp(1.0)) ,2*ff)*pow(R   (x*c/(1.0-x)) ,2)*((-dx(ff) + dx(ll))*dx(ww) + 4*M*om*pow(dxR     (c/pow(-1 + x,2)) ,2)*pow(E   (exp(1.0)) ,2*mm)*pow(pphi,2)*pow(csc(y)   (1.0/sin(y)) ,2))*sin(y) - 
+   92 :         4*dw*dxR     (c/pow(-1 + x,2)) *ww*pow(E   (exp(1.0)) ,2*ff)*(-(R   (x*c/(1.0-x)) *dx(ff)) + 3*R   (x*c/(1.0-x)) *dx(ll) + dxR     (c/pow(-1 + x,2)) *(1 + 4*pow(E   (exp(1.0)) ,2*mm)*pow(M,2)*pow(pphi,2)*pow(csc(y)   (1.0/sin(y)) ,2)))*sin(y) + 
+   93 :         8*dm*pow(dxR     (c/pow(-1 + x,2)) ,2)*pow(E   (exp(1.0)) ,2*ff)*pow(dy(pphi),2)*sin(y) - 4*df*pow(dxR     (c/pow(-1 + x,2)) ,2)*pow(E   (exp(1.0)) ,2*(ll + mm))*pow(pphi,2)*pow(R   (x*c/(1.0-x)) ,-2)*
+   94 :          (pow(E   (exp(1.0)) ,2*ff)*pow(R   (x*c/(1.0-x)) ,4) - 2*pow(M*ww - om*pow(R   (x*c/(1.0-x)) ,2),2))*sin(y) + 
+   95 :         2*dphi*pphi*pow(dxR     (c/pow(-1 + x,2)) ,2)*pow(E   (exp(1.0)) ,2*(ll + mm))*pow(R   (x*c/(1.0-x)) ,-2)*(pow(E   (exp(1.0)) ,2*ff)*pow(R   (x*c/(1.0-x)) ,4) - pow(M*ww - om*pow(R   (x*c/(1.0-x)) ,2),2))*sin(y) - 
+   96 :         dl*pow(E   (exp(1.0)) ,2*ll)*pow(R   (x*c/(1.0-x)) ,-2)*(pow(R   (x*c/(1.0-x)) ,2)*pow(dx(ww),2)*pow(sin(y),2) + pow(dxR     (c/pow(-1 + x,2)) ,2)*(4*pow(E   (exp(1.0)) ,2*(ff + mm))*pow(pphi,2)*pow(R   (x*c/(1.0-x)) ,4) + pow(dy(ww),2)*pow(sin(y),2)))*sin(y)
+   97 :         ))/2. + pow(dxR     (c/pow(-1 + x,2)) ,-1)*pow(E   (exp(1.0)) ,-ff + ll)*pow(R   (x*c/(1.0-x)) ,-2)*(-((dy(dm) + 2*dm*(cot(y)   (1.0/tan(y))  + dy(ff) + dy(ll)))*dy(um)*pow(dxR     (c/pow(-1 + x,2)) ,2)*pow(E   (exp(1.0)) ,2*ff)*pow(R   (x*c/(1.0-x)) ,2)*sin(y)) - 
+   98 :       (dy(dphi) - 8*dm*dy(pphi))*dy(uphi)*pow(dxR     (c/pow(-1 + x,2)) ,2)*pow(E   (exp(1.0)) ,2*ff)*pow(R   (x*c/(1.0-x)) ,2)*sin(y) + 
+   99 :       dx(ul)*(dxR     (c/pow(-1 + x,2)) *(dl - 6*dw*ww) - R   (x*c/(1.0-x)) *dx(dl) + 2*dw*R   (x*c/(1.0-x)) *dx(ww))*pow(E   (exp(1.0)) ,2*ff)*pow(R   (x*c/(1.0-x)) ,3)*sin(y) - 
+  100 :       dx(uf)*(-(dxR     (c/pow(-1 + x,2)) *(dl + 2*dw*ww)) + R   (x*c/(1.0-x)) *(dx(df) + 2*dw*dx(ww)))*pow(E   (exp(1.0)) ,2*ff)*pow(R   (x*c/(1.0-x)) ,3)*sin(y) - dx(dm)*dx(um)*pow(E   (exp(1.0)) ,2*ff)*pow(R   (x*c/(1.0-x)) ,4)*sin(y) - 
+  101 :       dx(dphi)*dx(uphi)*pow(E   (exp(1.0)) ,2*ff)*pow(R   (x*c/(1.0-x)) ,4)*sin(y) + R   (x*c/(1.0-x)) *dx(uw)*(-((R   (x*c/(1.0-x)) *dx(dw) + 2*dw*(dxR     (c/pow(-1 + x,2))  + R   (x*c/(1.0-x)) *(dx(ff) - dx(ll))))*pow(E   (exp(1.0)) ,2*ff)*pow(R   (x*c/(1.0-x)) ,2)) - 
+  102 :          (df - dl + dm)*(-2*dxR     (c/pow(-1 + x,2)) *ww + R   (x*c/(1.0-x)) *dx(ww))*pow(E   (exp(1.0)) ,2*ll)*pow(sin(y),2))*sin(y) - 
+  103 :       dy(uw)*pow(dxR     (c/pow(-1 + x,2)) ,2)*((dy(dw) - 2*dw*(cot(y)   (1.0/tan(y))  - dy(ff) + dy(ll)))*pow(E   (exp(1.0)) ,2*ff)*pow(R   (x*c/(1.0-x)) ,2) + (df - dl + 2*dm)*dy(ww)*pow(E   (exp(1.0)) ,2*ll)*pow(sin(y),2))*sin(y) + 
+  104 :       dy(ul)*pow(dxR     (c/pow(-1 + x,2)) ,2)*pow(E   (exp(1.0)) ,2*ff)*pow(R   (x*c/(1.0-x)) ,2)*((dl - 2*dm)*cos(y) - (dy(dl) + dy(dm) + 2*dm*(2*(dy(ff) + dy(ll)) + dy(mm)) - 2*dw*dy(ww))*sin(y)) + 
+  105 :       dy(uf)*pow(dxR     (c/pow(-1 + x,2)) ,2)*pow(E   (exp(1.0)) ,2*ff)*pow(R   (x*c/(1.0-x)) ,2)*((dl - 2*dm)*cos(y) - (dy(df) + dy(dm) + 4*dm*dy(ll) + 2*dm*dy(mm) + 2*dw*dy(ww))*sin(y))))
+  106 :         +on(lab,uphi=0)+on(2,uf=0)+on(2,ul=0)+on(1,2,um=0)+on(2,4,uw=0);
+  107 : 			
+  108 : 	Hess=vH(Vh,Vh);	////Compute the Hessian
+  109 : 	set(Hess,sparams="-ksp_view",solver=sparsesolver,master=-1);
+  110 : 	
+  111 : 	return 0;
+  112 : }
+  113 : 
+  114 : ;
+  162 : include "quant.edp"////Global quantities (computed using int2d)
+    2 : func real virial(real[int] & XX){
+    3 : 	Vh [pphi,ff,ll,mm,ww]; pphi[]=XX; ////Copy the d.o.f locally
+    4 : 	
+    5 : 	real res=int2d(Th)(pow(dxR     (c/pow(-1 + x,2)) ,-2)*pow(E   (exp(1.0)) ,-ff - 2*ll - mm)*pow(R   (x*c/(1.0-x)) ,-2)*(-(R   (x*c/(1.0-x)) *ww*(ww*(dx(ff) - 2*dx(ll) - dx(mm)) - 2*dx(ww))*pow(dxR     (c/pow(-1 + x,2)) ,2)*pow(E   (exp(1.0)) ,2*(2*ll + mm))*pow(M,2)*pow(pphi,2)) - 
+    6 :      pow(dxR     (c/pow(-1 + x,2)) ,3)*pow(E   (exp(1.0)) ,2*(2*ll + mm))*pow(M,2)*pow(pphi,2)*pow(ww,2) - 
+    7 :      pow(dxR     (c/pow(-1 + x,2)) ,2)*pow(R   (x*c/(1.0-x)) ,3)*(dy(pphi)*(2*dx(pphi)*(dy(ll) + dy(mm)) + (dx(ff) - dx(mm))*dy(pphi))*pow(E   (exp(1.0)) ,2*(ff + ll)) - 
+    8 :         M*pow(E   (exp(1.0)) ,2*(ll + mm))*pow(pphi,2)*(-4*om*ww*dx(ll)*pow(E   (exp(1.0)) ,2*ll) - 2*om*ww*dx(mm)*pow(E   (exp(1.0)) ,2*ll) - 2*om*dx(ww)*pow(E   (exp(1.0)) ,2*ll) - M*dx(mm)*pow(E   (exp(1.0)) ,2*ff)*pow(csc(y)   (1.0/sin(y)) ,2) + 
+    9 :            dx(ff)*(2*om*ww*pow(E   (exp(1.0)) ,2*ll) - M*pow(E   (exp(1.0)) ,2*ff)*pow(csc(y)   (1.0/sin(y)) ,2)))) - 
+   10 :      dxR     (c/pow(-1 + x,2)) *pow(E   (exp(1.0)) ,2*ll)*pow(R   (x*c/(1.0-x)) ,4)*(3*pow(dxR     (c/pow(-1 + x,2)) ,2)*pow(E   (exp(1.0)) ,2*(ll + mm))*(pow(E   (exp(1.0)) ,2*ff) - pow(om,2))*pow(pphi,2) + pow(E   (exp(1.0)) ,2*ff)*pow(dx(pphi),2)) - 
+   11 :      pow(E   (exp(1.0)) ,2*ll)*pow(R   (x*c/(1.0-x)) ,5)*(pow(dxR     (c/pow(-1 + x,2)) ,2)*pow(E   (exp(1.0)) ,2*(ll + mm))*((2*dx(ll) + dx(mm))*(pow(E   (exp(1.0)) ,2*ff) - pow(om,2)) + dx(ff)*(pow(E   (exp(1.0)) ,2*ff) + pow(om,2)))*pow(pphi,2) + 
+   12 :         (dx(ff) + 2*dx(ll) + dx(mm))*pow(E   (exp(1.0)) ,2*ff)*pow(dx(pphi),2)) - 
+   13 :      pow(dxR     (c/pow(-1 + x,2)) ,3)*pow(R   (x*c/(1.0-x)) ,2)*(M*pow(E   (exp(1.0)) ,2*(ll + mm))*pow(pphi,2)*(2*om*ww*pow(E   (exp(1.0)) ,2*ll) + M*pow(E   (exp(1.0)) ,2*ff)*pow(csc(y)   (1.0/sin(y)) ,2)) + pow(E   (exp(1.0)) ,2*(ff + ll))*pow(dy(pphi),2)))*sin(y));
+   14 : 	
+   15 : 	return res;
+   16 : }
+   17 : 
+   18 : func real const1(real[int] & XX){
+   19 : 	Vh [pphi,ff,ll,mm,ww]; pphi[]=XX; ////Copy the d.o.f locally
+   20 : 	
+   21 : 	real res=int2d(Th)((pow(dxR     (c/pow(-1 + x,2)) ,-2)*pow(E   (exp(1.0)) ,-2*(ff + ll + mm))*pow(R   (x*c/(1.0-x)) ,-3)*(-2*(-(dxR     (c/pow(-1 + x,2)) *(dy(ff) + dy(ll) + dy(mm))) + 
+   22 :           R   (x*c/(1.0-x)) *(dxy(ff) + dxy(ll) + (dx(ff) - dx(ll) - dx(mm))*dy(ff) - dx(mm)*(cot(y)   (1.0/tan(y))  + dy(ll)) - (dx(ff) + dx(ll))*(dy(ll) + dy(mm)) + 4*dx(pphi)*dy(pphi)))*
+   23 :         pow(E   (exp(1.0)) ,2*ff)*pow(R   (x*c/(1.0-x)) ,2) + (-2*dxR     (c/pow(-1 + x,2)) *ww + R   (x*c/(1.0-x)) *dx(ww))*dy(ww)*pow(E   (exp(1.0)) ,2*ll)*pow(sin(y),2)))/2.);
+   24 : 	
+   25 : 	return res;
+   26 : }
+   27 : 
+   28 : func real const2(real[int] & XX){
+   29 : 	Vh [pphi,ff,ll,mm,ww]; pphi[]=XX; ////Copy the d.o.f locally
+   30 : 	
+   31 : 	real res=int2d(Th)((pow(dxR     (c/pow(-1 + x,2)) ,-3)*pow(E   (exp(1.0)) ,-2*(ff + ll + mm))*pow(R   (x*c/(1.0-x)) ,-4)*(2*pow(E   (exp(1.0)) ,2*ff)*pow(R   (x*c/(1.0-x)) ,2)*
+   32 :         (R   (x*c/(1.0-x)) *(dx(ff) + dx(ll) + 2*dx(mm))*pow(dxR     (c/pow(-1 + x,2)) ,2) + dxxR     ((-2*c)/pow(-1 + x,3)) *(dx(ff) + dx(ll))*pow(R   (x*c/(1.0-x)) ,2) - 
+   33 :           dxR     (c/pow(-1 + x,2)) *pow(R   (x*c/(1.0-x)) ,2)*(-2*(dx(ff) + dx(ll))*(dx(ll) + dx(mm)) + dxx(ff) + dxx(ll) + pow(dx(ff),2) + pow(dx(ll),2) + 4*pow(dx(pphi),2)) + 
+   34 :           pow(dxR     (c/pow(-1 + x,2)) ,3)*(-2*cot(y)   (1.0/tan(y)) *dy(mm) - 2*dy(ll)*dy(mm) - 2*dy(ff)*(dy(ll) + dy(mm)) + dyy(ff) + dyy(ll) + pow(dy(ff),2) - pow(dy(ll),2) + 4*pow(dy(pphi),2))) + 
+   35 :        dxR     (c/pow(-1 + x,2)) *pow(E   (exp(1.0)) ,2*ll)*(-4*dxR     (c/pow(-1 + x,2)) *R   (x*c/(1.0-x)) *ww*dx(ww) + pow(R   (x*c/(1.0-x)) ,2)*pow(dx(ww),2) + pow(dxR     (c/pow(-1 + x,2)) ,2)*(4*pow(ww,2) - pow(dy(ww),2)))*pow(sin(y),2)))/2.);
+   36 : 	
+   37 : 	return res;
+   38 : }
+   39 : 
+   40 : ////"Regularization" of functions for vh construction (remove the boundaries)
+   41 : func real fconst1(real[int] & XX, real xx, real yy){
+   42 : 	Vh [pphi,ff,ll,mm,ww]; pphi[]=XX; ////Copy the d.o.f locally
+   43 : 	
+   44 : 	real res=0.0;
+   45 : 	real r, dxr, dxxr;
+   46 : 	
+   47 : 	if(xx > 0.0 && xx < 1.0 && yy > 0.0){
+   48 : 		r = xx*c/(1.0-xx);
+   49 : 		dxr = (c/pow(-1 + xx,2));
+   50 : 		dxxr = ((-2*c)/pow(-1 + xx,3));
+   51 : 		res=abs((pow(dxr,-2)*pow(E   (exp(1.0)) ,-2*(ff + ll + mm))*pow(r,-3)*(-2*(-(dxr*(dy(ff) + dy(ll) + dy(mm))) + r*(dxy(ff) + dxy(ll) + (dx(ff) - dx(ll) - dx(mm))*dy(ff) - dx(mm)*(cot(yy)   (1.0/tan(yy))  + dy(ll)) - (dx(ff) + dx(ll))*(dy(ll) + dy(mm)) + 4*dx(pphi)*dy(pphi)))*pow(E   (exp(1.0)) ,2*ff)*pow(r,2) + (-2*dxr*ww + r*dx(ww))*dy(ww)*pow(E   (exp(1.0)) ,2*ll)*pow(sin(yy),2)))/2.);
+   52 : 	}
+   53 : 	
+   54 : 	return res;
+   55 : }
+   56 : 
+   57 : func real fconst2(real[int] & XX, real xx, real yy){
+   58 : 	Vh [pphi,ff,ll,mm,ww]; pphi[]=XX; ////Copy the d.o.f locally
+   59 : 	
+   60 : 	real res=0.0;
+   61 : 	real r, dxr, dxxr;
+   62 : 	
+   63 : 	if(xx > 0.0 && xx < 1.0 && yy > 0.0){
+   64 : 		r = xx*c/(1.0-xx);
+   65 : 		dxr = (c/pow(-1 + xx,2));
+   66 : 		dxxr = ((-2*c)/pow(-1 + xx,3));
+   67 : 		res=abs((pow(dxr,-3)*pow(E   (exp(1.0)) ,-2*(ff + ll + mm))*pow(r,-4)*(2*pow(E   (exp(1.0)) ,2*ff)*pow(r,2)*(r*(dx(ff) + dx(ll) + 2*dx(mm))*pow(dxr,2) + dxxr*(dx(ff) + dx(ll))*pow(r,2) - dxr*pow(r,2)*(-2*(dx(ff) + dx(ll))*(dx(ll) + dx(mm)) + dxx(ff) + dxx(ll) + pow(dx(ff),2) + pow(dx(ll),2) + 4*pow(dx(pphi),2)) + pow(dxr,3)*(-2*cot(y)   (1.0/tan(y)) *dy(mm) - 2*dy(ll)*dy(mm) - 2*dy(ff)*(dy(ll) + dy(mm)) + dyy(ff) + dyy(ll) + pow(dy(ff),2) - pow(dy(ll),2) + 4*pow(dy(pphi),2))) + dxr*pow(E   (exp(1.0)) ,2*ll)*(-4*dxr*r*ww*dx(ww) + pow(r,2)*pow(dx(ww),2) + pow(dxr,2)*(4*pow(ww,2) - pow(dy(ww),2)))*pow(sin(y),2)))/2.);
+   68 :        	}
+   69 : 	
+   70 : 	return res;
+   71 : }
+   72 : 
+   73 : 
+   74 : 
+   75 : ;
+  163 : 
+  164 : ////Variable for the NR Solver
+  165 : real[int] RHS1(phi.n); real[int] RHS2(phi.n);
+  166 : real[int] AuxVec(phi.n);
+  167 : real[int] RESIDUE(2);
+  168 : matrix<real> HessianMat;
+  169 : real eps2=eps^2;
+  170 : bool converge=0;
+  171 : 
+  172 : ////Principal loop
+  173 : real time1=clock();
+  174 : if(RUN){
+  175 : for(int n=0;n<Nmax;n++){
+  176 : 	RHS1=EOM(phi[]);
+  177 : 	Hessian(phi[],HessianMat);
+  178 : 	RHS2=HessianMat^(-1)*RHS1;
+  179 : 	
+  180 : 	////Compute the residuals and communicate
+  181 : 	mpiAllReduce(RHS1,AuxVec,mpiCommWorld,mpiSUM);
+  182 : 	RESIDUE[0]=AuxVec'*AuxVec;
+  183 : 	RESIDUE[1]=RHS2'*RHS2;
+  184 : 	if(!mpirank)	cout << "n=" << n << " , |dJ|^2 = "  << RESIDUE[0] << " , |ddJ|^2 = " << RESIDUE[1] << endl;
+  185 : 	if(RESIDUE[0] < eps2 && RESIDUE[1] < eps2){
+  186 : 		converge=1; 
+  187 : 		break;
+  188 : 	}
+  189 : 	if(RESIDUE[1] > STOP) break;
+  190 : 	
+  191 : 	phi[]-=1.0*RHS2;
+  192 : 	plot(phi,wait=false,value=true,nbiso=50,fill=true,dim=2,cmm="Intermediate steps...");
+  193 : }}
+  194 : else converge=1;
+  195 : real tnr=clock()-time1;
+  196 : if(!mpirank) cout << "NR time :" << tnr << endl;
+  197 : 
+  198 : ////Display the result
+  199 : plot(phi,wait=true,value=true,nbiso=50,fill=true,cmm="Result: f");
+  200 : plot(f,wait=true,value=true,nbiso=50,fill=true,cmm="Result: f");
+  201 : plot(l,wait=true,value=true,nbiso=50,fill=true,cmm="Result: l");
+  202 : plot(fm,wait=true,value=true,nbiso=50,fill=true,cmm="Result: fm");
+  203 : plot(w,wait=true,value=true,nbiso=50,fill=true,cmm="Result: w");
+  204 : 
+  205 : ////Compute physical quantities
+  206 : time1=clock();
+  207 : real Q=int2d(Th)(8.0*pi*dxR     (c/pow(-1 + x,2)) *pow(E   (exp(1.0)) ,-f + 2*fm + 3*l)*pow(phi,2)*(-(M*w) + om*pow(R   (x*c/(1.0-x)) ,2))*sin(y));
+  208 : real J=M*Q;
+  209 : real Mass=int2d(Th)(-8.0*pi*dxR     (c/pow(-1 + x,2)) *pow(E   (exp(1.0)) ,-f + 2*fm + 3*l)*pow(phi,2)*(2*M*om*w + (pow(E   (exp(1.0)) ,2*f) - 2*pow(om,2))*pow(R   (x*c/(1.0-x)) ,2))*sin(y));
+  210 : real Masymp=4.0*pi*int1d(Th,2)(c*dx(f)*sin(y));
+  211 : real Jasymp=-2.0*pi*c*int1d(Th,2)(dx(w)*sin(y));
+  212 : real gtt=int1d(Th,4)(-exp(2.0*f)*sin(y));
+  213 : 
+  214 : func rhoT=pow(phi,2)*(1 + pow(E   (exp(1.0)) ,-2*f)*pow(om,2) - pow(E   (exp(1.0)) ,-2*f)*pow(M,2)*pow(R   (x*c/(1.0-x)) ,-4)*pow(w,2) + pow(E   (exp(1.0)) ,-2*l)*pow(M,2)*pow(R   (x*c/(1.0-x)) ,-2)*pow(csc(y)   (1.0/sin(y)) ,2)) + 
+  215 :    pow(E   (exp(1.0)) ,-2*(fm + l))*(pow(dxR     (c/pow(-1 + x,2)) ,-2)*pow(dx(phi),2) + pow(R   (x*c/(1.0-x)) ,-2)*pow(dy(phi),2));
+  216 :      
+  217 : func rhoK=-2*pow(E   (exp(1.0)) ,-2*f)*pow(phi,2)*pow(R   (x*c/(1.0-x)) ,-2)*(2*M*om*w + (pow(E   (exp(1.0)) ,2*f) - 2*pow(om,2))*pow(R   (x*c/(1.0-x)) ,2));
+  218 : 
+  219 : func fein23=(pow(dxR     (c/pow(-1 + x,2)) ,-2)*pow(E   (exp(1.0)) ,-2*(f + fm + l))*pow(R   (x*c/(1.0-x)) ,-3)*(-2*(-(dxR     (c/pow(-1 + x,2)) *(dy(f) + dy(fm) + dy(l))) + 
+  220 :           R   (x*c/(1.0-x)) *(dxy(f) + dxy(l) + (dx(f) - dx(fm) - dx(l))*dy(f) - dx(fm)*(cot(y)   (1.0/tan(y))  + dy(l)) - (dx(f) + dx(l))*(dy(fm) + dy(l)) + 4*dx(phi)*dy(phi)))*pow(E   (exp(1.0)) ,2*f)*pow(R   (x*c/(1.0-x)) ,2)
+  221 :         + (-2*dxR     (c/pow(-1 + x,2)) *w + R   (x*c/(1.0-x)) *dx(w))*dy(w)*pow(E   (exp(1.0)) ,2*l)*pow(sin(y),2)))/2.;
+  222 : 
+  223 : ////Compute errors estimators
+  224 : real vir=0.0,errm=0.0,err22=0.0,err23=0.0,errM=0.0,errJ=0.0,ein23max=0.0,ein2233max=0.0;
+  225 : 
+  226 : vir=virial(phi[]);
+  227 : errm=int1d(Th,1)(dy(fm));
+  228 : err23=const1(phi[]);
+  229 : err22=const2(phi[]);
+  230 : errM=1.0-(Mass/Masymp);
+  231 : if(M!=0) errJ=1.0-(J/Jasymp);
+  232 : 
+  233 : if(MAXCONST){
+  234 : 	vh ein23 = fconst1(phi[],x,y); 
+  235 : 	vh ein2233 = fconst2(phi[],x,y); 
+  236 : 
+  237 : 	ein23max = ein23[].max;
+  238 : 	ein2233max = ein2233[].max;
+  239 : }
+  240 : 
+  241 : real tquant=clock()-time1;
+  242 : 
+  243 : ////Display the quantities
+  244 : time1=clock();
+  245 : if(!mpirank){
+  246 : 	cout.precision(pres);
+  247 : 	cout << endl << endl;
+  248 : 	cout << "Convergence=" << converge << endl;
+  249 : 	cout << "Errors indicators:" << endl;
+  250 : 	cout << "Errors from virial=" << vir << endl;
+  251 : 	cout << "Errors on the z-axis=" << errm << endl;
+  252 : 	cout << "Errors from Ein(r,r)-Ein(th,th)=" << err22 << "	 (val. max=" << ein2233max << ")" << endl;
+  253 : 	cout << "Errors from Ein(r,th)=" << err23 << "	 (val. max=" << ein23max << ")" << endl;
+  254 : 	cout << "Errors from mass=" << errM << endl;
+  255 : 	cout << "Errors from angular momentum=" << errJ << endl;
+  256 : 	cout << endl;
+  257 : 	cout << "Input: m=" << M << "	 omega" << om << endl;
+  258 : 	cout << endl;
+  259 : 	cout << "Output:" << endl;
+  260 : 	cout << "M(inf)=" << Masymp/(4.0*pi) << "	 M(Komar)=" << Mass/(4.0*pi) << endl;
+  261 : 	cout << "J(inf)=" << Jasymp/(4.0*pi) << "	 J(Komar)=" << J/(4.0*pi) << endl;
+  262 : 	cout << "Q=" << Q << endl;
+  263 : 	cout << "gtt(r=0)=" << gtt << endl;
+  264 : 	/**
+  265 : 	cout << endl;
+  266 : 	cout << f(1,0.0) << "\t" << f(1,pi/2.0) << "\t" << f(1,pi/4.0) << endl;
+  267 : 	cout << l(1,0.0) << "\t" << l(1,pi/2.0) << "\t" << l(1,pi/4.0) << endl;
+  268 : 	cout << fm(1,0.0) << "\t" << fm(1,pi/2.0) << "\t" << fm(1,pi/4.0) << endl;
+  269 : 	cout << phi(1,0.0) << "\t" << phi(1,pi/2.0) << "\t" << phi(1,pi/4.0) << endl;
+  270 : 	cout << w(1,0.0) << "\t" << w(1,pi/2.0) << "\t" << w(1,pi/4.0) << endl;
+  271 : 	*/
+  272 : 	cout << endl << endl;
+  273 : }
+  274 : real tconsole=clock()-time1;
+  275 : 
+  276 : ////Save the configuration
+  277 : time1=clock();
+  278 : if(SAVE && !mpirank && (converge || FORCESAVE)){
+  279 : 	ofstream out("run/bs_c="+c+"_m="+M+"_om="+om+"_odd="+odd+".fem");
+  280 : 	out << phi[];
+  281 : 	Th=change(Th,fregion=0);
+  282 : 	savemesh(Th,"run/bs_c="+c+"_m="+M+"_om="+om+"_odd="+odd+".msh");
+  283 : }
+  284 : real tsave=clock()-time1;
+  285 : 
+  286 : ////Save with gnuplot
+  287 : time1=clock();
+  288 : 
+  289 : if(!mpirank && converge){
+  290 : 	ofstream outquant("quant.out",append);
+  291 : 	ofstream outerr("err.out",append);
+  292 : 	outquant.precision(pres);
+  293 : 	outerr.precision(pres);
+  294 : 	
+  295 : 	if(QUANT) outquant << om << "	" << Mass/(4.0*pi) << "	" << Masymp/(4.0*pi) << "	" << Q/(4.0*pi) << "	" << J/(4.0*pi) << "	" << Jasymp/(4.0*pi) << "	" << gtt << endl;
+  296 : 	if(QUANT) outerr << om << "	" << Nx << "	" << Ny << "	" << c << "	" << errM << "	" << errJ << "	" << vir << "	" << errm << endl;
+  297 : 	
+  298 : 	ofstream outbs("bs.out");
+  299 : 	ofstream out2d1("bh_2d_1.out");
+  300 : 	ofstream out2d2("bh_2d_2.out");
+  301 : 	ofstream out2d3("bh_2d_3.out");
+  302 : 
+  303 : 	real rr,xx,theta; 
+  304 : 	////int nbr=250, nbth=250;  //3D plot 0 -> \pi   
+  305 : 	int nbr=250, nbth=100;
+  306 : 	int nb2=400;            ////2D plot
+  307 : 	real Rmax=50.0;
+  308 : 	real rrmax=Rmax, rrmin=1e-2;
+  309 : 	real xmax=Rmax, xmin=0.0;
+  310 : 	real thmax=pi/2.0-1e-4, thmin=1e-4;
+  311 : 	real rrstp=(rrmax-rrmin)/(nbr-1);
+  312 : 	real thstp=(thmax-thmin)/(nbth-1);
+  313 : 	real xstp=(xmax-xmin)/(nb2-1);
+  314 : 	real rc,thet,rho,zz;
+  315 : 	real th1,th2,th3;
+  316 : 	real temp, par=1.0;
+  317 : 	
+  318 : 	if(PLOT3D){
+  319 : 		for(int i=0;i<nbr;i++){
+  320 : 			rr=rrmin+i*rrstp;
+  321 : 			for(int j=0;j<nbth;j++){
+  322 : 				theta=thmin+j*thstp;
+  323 : 				rho=rr*sin(theta);
+  324 : 				zz=rr*cos(theta);
+  325 : 				rc=rr/(rr+c);
+  326 : 				if(theta <= pi/2.0){ 
+  327 : 					thet=theta;
+  328 : 				}
+  329 : 				else if(theta > pi/2.0 && theta <= pi){
+  330 : 					thet=pi-theta;
+  331 : 					if(odd) par=-1.0;
+  332 : 				}
+  333 : 			
+  334 : 				outbs << rho << "	" << zz << "	" << par*phi(rc,thet) << "	" << f(rc,thet) << "	" << l(rc,thet) <<  "	" << fm(rc,thet) << "	" << w(rc,thet) << "	" << rhoT(rc,thet) << "	" << rhoK(rc,thet)  /**<< "\t" << ein23(rc,thet) << "\t" << ein2233(rc,thet)*/ << endl;
+  335 : 			}
+  336 : 			outbs << endl;
+  337 : 		}
+  338 : 	}
+  339 : 	
+  340 : 	if(PLOT2D){	
+  341 : 		for(int i=0;i<nb2;i++){
+  342 : 			xx=xmin+i*xstp;
+  343 : 			th1=1e-6; th2=pi/4.0; th3=pi/2.0;
+  344 : 			rc=xx/(xx+c);
+  345 : 			
+  346 : 			out2d1 << xx << "	" << par*phi(rc,th1) << "	" << f(rc,th1) << "	" << l(rc,th1) <<  "	" << fm(rc,th1) << "	" << w(rc,th1) << "	" << rhoT(rc,th1) << "	" << rhoK(rc,th1) << endl;
+  347 : 			out2d2 << xx << "	" << par*phi(rc,th2) << "	" << f(rc,th2) << "	" << l(rc,th2) <<  "	" << fm(rc,th2) << "	" << w(rc,th2) << "	" << rhoT(rc,th2) << "	" << rhoK(rc,th2) << endl;
+  348 : 			out2d3 << xx << "	" << par*phi(rc,th3) << "	" << f(rc,th3) << "	" << l(rc,th3) <<  "	" << fm(rc,th3) << "	" << w(rc,th3) << "	" << rhoT(rc,th3) << "	" << rhoK(rc,th3) << endl;
+  349 : 		}
+  350 : 	}
+  351 : }
+  352 : 
+  353 : real toutput=clock()-time1;
+  354 : 
+  355 : 
+  356 : if(!mpirank){
+  357 : 	cout << endl << endl;
+  358 : 	cout << "NR time :" << tnr << endl;
+  359 : 	cout << "Quantities time :" << tquant << endl;
+  360 : 	cout << "Console time :" << tconsole << endl;
+  361 : 	cout << "Save time :" << tsave << endl;
+  362 : 	cout << "Output time :" << toutput << endl;
+  363 : 	cout << endl << endl;
+  364 : }
+  365 : 	
+  366 :  sizestack + 1024 =248928  ( 247904 )
+
+  --  mesh:  Nb of Triangles =  13000, Nb of Vertices 6681
+  -- Square mesh : nb vertices  =6681 ,  nb triangles = 13000 ,  nb boundary edges 360 rmdup= 0
+Initial guess
+n=0 , |dJ|^2 = 1.09516334176e-11 , |ddJ|^2 = 1.99411432359e-08
+n=1 , |dJ|^2 = 2.7042580392e-18 , |ddJ|^2 = 1.16797938214e-13
+n=2 , |dJ|^2 = 2.08068167565e-26 , |ddJ|^2 = 2.92413963215e-27
+NR time :22.805466
+
+
+Convergence=1
+Errors indicators:
+Errors from virial=-5.20457991662e-13
+Errors on the z-axis=-1.83070133557e-09
+Errors from Ein(r,r)-Ein(th,th)=-2.63921112436e-07	 (val. max=0)
+Errors from Ein(r,th)=-5.38010537291e-11	 (val. max=0)
+Errors from mass=-4.72256234119e-10
+Errors from angular momentum=0
+
+Input: m=0	 omega0.99
+
+Output:
+M(inf)=0.373093353778	 M(Komar)=0.373093353955
+J(inf)=-0	 J(Komar)=0
+Q=4.70388618931
+gtt(r=0)=-0.972447106088
+
+
+  number of required edges : 0
+
+
+NR time :22.805466
+Quantities time :6.029938
+Console time :0.000118000000001
+Save time :0.065069
+Output time :0.000197999999997
+
+
+times: compile 0.040115s, execution 34.2377s,  mpirank:3
+ ######## unfreed pointers   0 Nb pointer,   0Bytes  ,  mpirank 3, memory leak =4623456
+ CodeAlloc : nb ptr  16307,  size :961208 mpirank: 3
+times: compile 0.040507s, execution 34.3149s,  mpirank:2
+ ######## unfreed pointers   0 Nb pointer,   0Bytes  ,  mpirank 2, memory leak =2504496
+ CodeAlloc : nb ptr  16307,  size :961208 mpirank: 2
+times: compile 0.064675s, execution 34.287915s,  mpirank:0
+ ######## unfreed pointers   21 Nb pointer,   0Bytes  ,  mpirank 0, memory leak =3844384
+ CodeAlloc : nb ptr  16307,  size :961208 mpirank: 0
+Ok: Normal End
+times: compile 0.040575s, execution 34.315s,  mpirank:1
+ ######## unfreed pointers   0 Nb pointer,   0Bytes  ,  mpirank 1, memory leak =3561456
+ CodeAlloc : nb ptr  16307,  size :961208 mpirank: 1
