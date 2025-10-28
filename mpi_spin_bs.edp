@@ -10,7 +10,7 @@ The code uses the metric parametrisation,
 
 ds^2=-exp(2*f)*dt^2 + exp(2*m)*dr^2 + exp(2*m)*r^2*d\theta^2 + exp(2*l)*r^2*sin(\theta)^2*(d\varphi - w/r^2*dt)^2,
 
-and the scalar field ansatz: \Phi = \phi(r,\theta)*exp(-i\omega*t + i*m*\varphi).
+and the scalar field ansatz: \Phi = \phi(r,\theta)*exp(-i\omega*t + i*M*\varphi).
 
 It uses a compactified radial coordinate: r(x) = c*x/(1-x),
 
@@ -206,8 +206,19 @@ real Masymp=4.0*pi*int1d(Th,2)(c*dx(f)*sin(y));
 real Jasymp=-2.0*pi*c*int1d(Th,2)(dx(w)*sin(y));
 real gtt=int1d(Th,4)(-exp(2.0*f)*sin(y));
 
-func rhoT=pow(phi,2)*(1 + pow(E,-2*f)*pow(om,2) - pow(E,-2*f)*pow(M,2)*pow(R,-4)*pow(w,2) /*+ pow(E,-2*l)*pow(M,2)*pow(R,-2)*pow(csc(y),2)*/) + pow(E,-2*(fm + l))*(pow(dxR,-2)*pow(dx(phi),2) + pow(R,-2)*pow(dy(phi),2));
-     
+//Coeffitients at the origin (TODO: The scalar field coeff. makes sense only for static dipoles)
+real f10=int1d(Th,4)((fm+l)*sin(y));
+real f20=int1d(Th,4)(l*sin(y));
+vh dxphi=dx(phi);
+//real d1=int1d(Th,4)(dx(phi));
+real d1=dxphi(0.0,pi/2.0-1e-3)/cos(pi/2.0-1e-3);
+
+/* Use this for M>0 */
+//func rhoT=pow(phi,2)*(1 + pow(E,-2*f)*pow(om,2) - pow(E,-2*f)*pow(M,2)*pow(R,-4)*pow(w,2) + pow(E,-2*l)*pow(M,2)*pow(R,-2)*pow(csc(y),2)) + pow(E,-2*(fm + l))*(pow(dxR,-2)*pow(dx(phi),2) + pow(R,-2)*pow(dy(phi),2));
+
+/* Use this for M=0 */
+func rhoT=pow(phi,2) + exp(-2.0*f)*pow(om*phi,2) + exp(-2.0*fm-2.0*l)*(pow(dx(phi)/dxR,2)+pow(dy(phi)/R,2));
+
 func rhoK=-2*pow(E,-2*f)*pow(phi,2)*pow(R,-2)*(2*M*om*w + (pow(E,2*f) - 2*pow(om,2))*pow(R,2));
 
 func fein23=(pow(dxR,-2)*pow(E,-2*(f + fm + l))*pow(R,-3)*(-2*(-(dxR*(dy(f) + dy(fm) + dy(l))) + R*(dxy(f) + dxy(l) + (dx(f) - dx(fm) - dx(l))*dy(f) - dx(fm)*(cot(y) + dy(l)) - (dx(f) + dx(l))*(dy(fm) + dy(l)) + 4*dx(phi)*dy(phi)))*pow(E,2*f)*pow(R,2) + (-2*dxR*w + R*dx(w))*dy(w)*pow(E,2*l)*pow(sin(y),2)))/2.;
@@ -253,7 +264,8 @@ if(!mpirank){
 	cout << "M(inf)=" << Masymp/(4.0*pi) << "\t M(Komar)=" << Mass/(4.0*pi) << endl;
 	cout << "J(inf)=" << Jasymp/(4.0*pi) << "\t J(Komar)=" << J/(4.0*pi) << endl;
 	cout << "Q=" << Q << endl;
-	cout << "gtt(r=0)=" << gtt << endl;
+	cout << "gtt(r=0)=" << gtt << "\t F_1(r=0)=" << f10 << "\t F_2(r=0)=" << f20 << endl;
+	if(odd && M==0) cout << "d1=" << d1 << "\t -T00(r=0)=" << pow(d1,2.0)*exp(-2.0*f10) << endl;
 	cout << endl << endl;
 }
 real tconsole=clock()-time1;
@@ -295,8 +307,8 @@ if(!mpirank && converge){
 	int nbxc=300, nbxth=100;  //For Mathematica
 	real Rmax=50.0;
 	real rrmax=Rmax, rrmin=1e-2;
-	real xmax=Rmax, xmin=0.0;
-	real xcmax=1.0, xcmin=1e-3;
+	real xmax=Rmax, xmin=1e-2;
+	real xcmax=1.0, xcmin=0.0;
 	real thmax=pi/2.0, thmin=0.0;
 	real rrstp=(rrmax-rrmin)/(nbr-1);
 	real thstp=(thmax-thmin)/(nbth-1);
@@ -346,7 +358,8 @@ if(!mpirank && converge){
 				}
 				
 				if(rc==1) temp=0.0;
-				else	  temp=rhoT(rc,theta);
+				else if(rc==0) temp=rhoT(rc+xcstp,theta);
+				else	       temp=rhoT(rc,theta);
 				
 				outmat << rc << "\t" << th << "\t" << par*phi(rc,theta) << "\t" << temp << "\t" << l(rc,theta)+fm(rc,theta) << endl;
 			}
@@ -357,12 +370,12 @@ if(!mpirank && converge){
 	if(PLOT2D){	
 		for(int i=0;i<nb2;i++){
 			xx=xmin+i*xstp;
-			th1=1e-6; th2=pi/4.0; th3=pi/2.0;
+			th1=1e-6; th2=pi/4.0; th3=pi/2.0-1e-3;
 			rc=xx/(xx+c);
 			
-			out2d1 << xx << "\t" << par*phi(rc,th1) << "\t" << f(rc,th1) << "\t" << l(rc,th1) <<  "\t" << fm(rc,th1) << "\t" << w(rc,th1) << "\t" << rhoT(rc,th1) << "\t" << rhoK(rc,th1) << endl;
-			out2d2 << xx << "\t" << par*phi(rc,th2) << "\t" << f(rc,th2) << "\t" << l(rc,th2) <<  "\t" << fm(rc,th2) << "\t" << w(rc,th2) << "\t" << rhoT(rc,th2) << "\t" << rhoK(rc,th2) << endl;
-			out2d3 << xx << "\t" << par*phi(rc,th3) << "\t" << f(rc,th3) << "\t" << l(rc,th3) <<  "\t" << fm(rc,th3) << "\t" << w(rc,th3) << "\t" << rhoT(rc,th3) << "\t" << rhoK(rc,th3) << endl;
+			out2d1 << xx << "\t" << par*dxphi(rc,th1)/cos(th1) << "\t" << f(rc,th1) << "\t" << l(rc,th1) <<  "\t" << fm(rc,th1) << "\t" << w(rc,th1) << "\t" << rhoT(rc,th1) << "\t" << rhoK(rc,th1) << endl;
+			out2d2 << xx << "\t" << par*dxphi(rc,th2)/cos(th2) << "\t" << f(rc,th2) << "\t" << l(rc,th2) <<  "\t" << fm(rc,th2) << "\t" << w(rc,th2) << "\t" << rhoT(rc,th2) << "\t" << rhoK(rc,th2) << endl;
+			out2d3 << xx << "\t" << par*dxphi(rc,th3)/cos(th3) << "\t" << f(rc,th3) << "\t" << l(rc,th3) <<  "\t" << fm(rc,th3) << "\t" << w(rc,th3) << "\t" << rhoT(rc,th3) << "\t" << rhoK(rc,th3) << endl;
 		}
 	}
 }

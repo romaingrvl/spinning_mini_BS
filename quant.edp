@@ -64,11 +64,30 @@ func real fconst2(real[int] & XX, real xx, real yy){
 		r = xx*c/(1.0-xx);
 		dxr = (c/pow(-1 + xx,2));
 		dxxr = ((-2*c)/pow(-1 + xx,3));
-		res=abs((pow(dxr,-3)*pow(E,-2*(ff + ll + mm))*pow(r,-4)*(2*pow(E,2*ff)*pow(r,2)*(r*(dx(ff) + dx(ll) + 2*dx(mm))*pow(dxr,2) + dxxr*(dx(ff) + dx(ll))*pow(r,2) - dxr*pow(r,2)*(-2*(dx(ff) + dx(ll))*(dx(ll) + dx(mm)) + dxx(ff) + dxx(ll) + pow(dx(ff),2) + pow(dx(ll),2) + 4*pow(dx(pphi),2)) + pow(dxr,3)*(-2*cot(y)*dy(mm) - 2*dy(ll)*dy(mm) - 2*dy(ff)*(dy(ll) + dy(mm)) + dyy(ff) + dyy(ll) + pow(dy(ff),2) - pow(dy(ll),2) + 4*pow(dy(pphi),2))) + dxr*pow(E,2*ll)*(-4*dxr*r*ww*dx(ww) + pow(r,2)*pow(dx(ww),2) + pow(dxr,2)*(4*pow(ww,2) - pow(dy(ww),2)))*pow(sin(y),2)))/2.);
+		res=abs((pow(dxr,-3)*pow(E,-2*(ff + ll + mm))*pow(r,-4)*(2*pow(E,2*ff)*pow(r,2)*(r*(dx(ff) + dx(ll) + 2*dx(mm))*pow(dxr,2) + dxxr*(dx(ff) + dx(ll))*pow(r,2) - dxr*pow(r,2)*(-2*(dx(ff) + dx(ll))*(dx(ll) + dx(mm)) + dxx(ff) + dxx(ll) + pow(dx(ff),2) + pow(dx(ll),2) + 4*pow(dx(pphi),2)) + pow(dxr,3)*(-2*cot(yy)*dy(mm) - 2*dy(ll)*dy(mm) - 2*dy(ff)*(dy(ll) + dy(mm)) + dyy(ff) + dyy(ll) + pow(dy(ff),2) - pow(dy(ll),2) + 4*pow(dy(pphi),2))) + dxr*pow(E,2*ll)*(-4*dxr*r*ww*dx(ww) + pow(r,2)*pow(dx(ww),2) + pow(dxr,2)*(4*pow(ww,2) - pow(dy(ww),2)))*pow(sin(yy),2)))/2.);
        	}
 	
 	return res;
 }
 
-
-
+//Energy density function (NOT WORKING)
+/*
+func real rhoT(real MM, real xx, real yy){
+	real res=0.0;
+	real r, dxr, dxxr;
+	
+	r = xx*c/(1.0-xx);
+	dxr = (c/pow(-1 + xx,2));
+	dxxr = ((-2*c)/pow(-1 + xx,3));
+	
+	if(MM!=0){
+		res=pow(phi,2)*(1 + pow(E,-2*f)*pow(om,2) - pow(E,-2*f)*pow(MM,2)*pow(r,-4)*pow(w,2) + pow(E,-2*l)*pow(M,2)*pow(r,-2)*pow(csc(yy),2)) + pow(E,-2*(fm + l))*(pow(dxr,-2)*pow(dx(phi),2) + pow(r,-2)*pow(dy(phi),2));
+	}
+	
+	else{
+		res=pow(phi,2)*(1 + pow(E,-2*f)*pow(om,2) - pow(E,-2*f)*pow(MM,2)*pow(r,-4)*pow(w,2)) + pow(E,-2*(fm + l))*(pow(dxr,-2)*pow(dx(phi),2) + pow(r,-2)*pow(dy(phi),2));
+	}
+	
+	return res;
+}
+*/
