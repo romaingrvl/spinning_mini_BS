@@ -1,0 +1,7 @@
+# Tell GitHub Linguist that .edp files are FreeFem code
+*.edp linguist-language=FreeFem
+
+# Tell Linguist to ignore auxiliary files for language stats
+*.txt linguist-detectable=false
+*.out linguist-detectable=false
+*.dat linguist-detectable=false
