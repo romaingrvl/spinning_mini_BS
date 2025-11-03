@@ -6,3 +6,4 @@
 *.txt linguist-detectable=false
 *.out linguist-detectable=false
 *.dat linguist-detectable=false
+*.nb linguist-detectable=false
