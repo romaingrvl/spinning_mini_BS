@@ -1,6 +1,6 @@
 ![Status](https://img.shields.io/badge/Access-Read--Only-red)
 ![License](https://img.shields.io/badge/License-CC%20BY--NC%204.0-blue)
-![Cite](https://img.shields.io/badge/Cite-Gervalle%20et%20al.%202025-lightgrey)
+![Cite](https://img.shields.io/badge/Cite-Gervalle%202025-lightgrey)
 
 This repository is made publicly available **for consultation only** as part of research and academic evaluation.
 
