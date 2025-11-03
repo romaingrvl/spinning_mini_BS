@@ -1,4 +1,4 @@
-![Access](https://img.shields.io/badge/Access-Open--Research-brightgreen)
+![Status](https://img.shields.io/badge/Access-Read--Only-red)
 ![License](https://img.shields.io/badge/License-CC%20BY--NC%204.0-blue)
 ![Cite](https://img.shields.io/badge/Cite-Gervalle%20et%20al.%202025-lightgrey)
 
