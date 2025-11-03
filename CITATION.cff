@@ -1,0 +1,10 @@
+cff-version: 1.2.0
+title: "Spinning mini-Boson Stars"
+message: "If you use or adapt this code, please cite as below:"
+authors:
+  - family-names: "Gervalle"
+    given-names: "Romain"
+repository-code: "https://github.com/romaingrvl/spinning_mini_BS"
+license: "CC-BY-NC-4.0"
+version: "in preparation"
+date-released: "2025-11-03"
