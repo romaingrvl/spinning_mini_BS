@@ -1,4 +1,9 @@
-This code solves the Einstein-Klein-Gordon field equations for constructing
+![Status](https://img.shields.io/badge/Access-Read--Only-blue)
+![License](https://img.shields.io/badge/License-CC%20BY--NC--ND%204.0-lightgrey)
+
+This repository is made publicly available **for consultation only** as part of research and academic evaluation.
+
+The code solves the Einstein-Klein-Gordon field equations for constructing
 spinning (mini) boson stars. The scalar field is governed by the equation:
 
 \box\Phi = \mu^2\Phi with \mu^2=1,
