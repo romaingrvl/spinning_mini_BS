@@ -17,8 +17,8 @@ It uses a compactified radial coordinate: r(x) = c*x/(1-x),
 and a redefinition: \hat{m} = m - l.
 */
 
-
-//Exec : mpirun -np 4 FreeFem++-mpi -wg mpi_smin_bs.edp
+//Below is the execution command for constructing a static dipolar boson star from an already constructed solution in run
+//Execution : mpirun -np 4 FreeFem++-mpi -wg mpi_spin_bs.edp -load 1 -save 1 -m 0 -om 0.99 -odd 1
 
 load "MUMPS_mpi"
 include "getARGV.idp"
