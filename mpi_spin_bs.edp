@@ -28,7 +28,7 @@ real om=getARGV("-om",0.9);
 real M=getARGV("-m",1.0);
 bool odd=getARGV("-odd",0);
 
-//Domain, algoruthm and other parameters
+//Domain, algorithm and other parameters
 int Region=mpirank;
 int Ndomains=mpisize;
 int Nmax=getARGV("-nmax",15);
@@ -36,7 +36,7 @@ real STOP=getARGV("-stop",1e6);
 int Nx=getARGV("-nx",250);
 int Ny=getARGV("-ny",50);
 real c=getARGV("-c",1.0);
-real eps=1e-12; //10e-10
+real eps=2e-12; //10e-10
 int pres=12;
 
 //Gobal bool
@@ -125,7 +125,7 @@ if(!mpirank){
 broadcast(processor(0,mpiCommWorld),Th);
 broadcast(processor(0,mpiCommWorld),phi[]);
 
-//Repartiton of the different cells between processors
+//Repartition of the different cells between processors
 {
 	fespace femp0(Th,P0);	femp0 nuT;
 	for(int i=0;i<Th.nt;i++)	nuT[][i]=int(i*Ndomains/Th.nt);
@@ -206,7 +206,7 @@ real Masymp=4.0*pi*int1d(Th,2)(c*dx(f)*sin(y));
 real Jasymp=-2.0*pi*c*int1d(Th,2)(dx(w)*sin(y));
 real gtt=int1d(Th,4)(-exp(2.0*f)*sin(y));
 
-//Coeffitients at the origin (TODO: The scalar field coeff. makes sense only for static dipoles)
+//Coefficients at the origin (TODO: The scalar field coeff. makes sense only for static dipoles)
 real f10=int1d(Th,4)((fm+l)*sin(y));
 real f20=int1d(Th,4)(l*sin(y));
 vh dxphi=dx(phi);

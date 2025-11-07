@@ -2,23 +2,24 @@
 
 SOURCEFILE=mpi_spin_bs.edp
 
-c=12.635047045
+c=1.619436525
 m=0
-om=0.99
+om=0.9
 odd=1
-nx=647
-ny=50
+nx=870
+ny=160
 
-n=10
+n=20
 
-mpirun -np 4 FreeFem++-mpi -ng $SOURCEFILE -save 1 -load 1 -quant 1 -2Dplot 0 -c $c -m $m -om $om -odd $odd -nx $nx -ny $ny
+#mpirun -np 6 FreeFem++-mpi -ng $SOURCEFILE -save 1 -load 1 -quant 1 -2Dplot 0 -c $c -m $m -om $om -odd $odd -nx $nx -ny $ny
 
 for ((i=0;i<$n;i++))
 do
-	ny=$(bc -l <<<"$ny+5")
+	nx=$(bc -l <<<"$nx+30")
+	#ny=$(bc -l <<<"$ny+10")
 	
 	echo "Nb. points = $ny"
 	
-	mpirun -np 4 FreeFem++-mpi -ng $SOURCEFILE -save 1 -load 1 -quant 1 -2Dplot 0 -c $c -m $m -om $om -odd $odd -nx $nx -ny $ny
+	mpirun -np 6 FreeFem++-mpi -ng $SOURCEFILE -save 1 -load 1 -quant 1 -2Dplot 0 -c $c -m $m -om $om -odd $odd -nx $nx -ny $ny
 	
 done
