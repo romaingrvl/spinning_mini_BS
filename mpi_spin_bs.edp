@@ -105,8 +105,8 @@ if(!mpirank){
 		in >> phi[];
 		
 		/* Possibility to change the mesh if needed */
-		Th=square(Nx,Ny,[(2*x^1/(1+x^2)),y^2*pi/2.0]);
-		//Th=square(Nx,Ny,[(4*x^2/(1+x^2)^2),y^2*pi/2.0]);
+		//Th=square(Nx,Ny,[(2*x^1/(1+x^2)),y^2*pi/2.0]);
+		Th=square(Nx,Ny,[(4*x^2/(1+x^2)^2),y^2*pi/2.0]);
 		//Th=square(Nx,Ny,[(4*x^2/(1+x^2)^2),(4*y^2/(1+y^2)^2)*pi/2.0]);
 		
 		//Th=square(Nx,Ny,[(4*x^2/(1+x^2)^2),(y^4*(2.0-y)^4)*pi/2.0]);
