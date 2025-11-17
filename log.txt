@@ -9,19 +9,19 @@
     6 : 
     7 : and the convention for the Einstein equation is 4\pi*G=1.
     8 : 
-    9 : The code uses the metric parametrisation,
+    9 : The code uses the metric parametrization,
    10 : 
    11 : ds^2=-exp(2*f)*dt^2 + exp(2*m)*dr^2 + exp(2*m)*r^2*d\theta^2 + exp(2*l)*r^2*sin(\theta)^2*(d\varphi - w/r^2*dt)^2,
    12 : 
-   13 : and the scalar field ansatz: \Phi = \phi(r,\theta)*exp(-i\omega*t + i*m*\varphi).
+   13 : and the scalar field ansatz: \Phi = \phi(r,\theta)*exp(-i\omega*t + i*M*\varphi).
    14 : 
    15 : It uses a compactified radial coordinate: r(x) = c*x/(1-x),
    16 : 
    17 : and a redefinition: \hat{m} = m - l.
    18 : */
    19 : 
-   20 : 
-   21 : ////Exec : mpirun -np 4 FreeFem++-mpi -wg mpi_smin_bs.edp
+   20 : ////Below is the execution command for constructing a static dipolar boson star from an already constructed solution in run
+   21 : ////Execution : mpirun -np 4 FreeFem++-mpi -wg mpi_spin_bs.edp -load 1 -save 1 -m 0 -om 0.99 -odd 1
    22 : 
    23 : load "MUMPS_mpi"
    24 : include "getARGV.idp" //// for gestion of FreeFem++ argument and in version 3.10-1 FH
@@ -215,7 +215,7 @@
    28 : real M=getARGV("-m",1.0);
    29 : bool odd=getARGV("-odd",0);
    30 : 
-   31 : ////Domain, algoruthm and other parameters
+   31 : ////Domain, algorithm and other parameters
    32 : int Region=mpirank;
    33 : int Ndomains=mpisize;
    34 : int Nmax=getARGV("-nmax",15);
@@ -227,128 +227,163 @@
    40 : int pres=12;
    41 : 
    42 : ////Gobal bool
-   43 : bool PLOT3D=getARGV("-3Dplot",0);
-   44 : bool PLOT2D=getARGV("-2Dplot",1);
-   45 : bool MAXCONST=getARGV("-const",0);
-   46 : bool QUANT=getARGV("-quant",0);
-   47 : bool RUN=getARGV("-run",1);
-   48 : bool LOAD=getARGV("-load",0);
-   49 : bool SAVE=getARGV("-save",0);
-   50 : bool FORCESAVE=getARGV("-fsave",0);
-   51 : real omload=getARGV("-omload",om);
-   52 : real Mload=getARGV("-mload",M);
-   53 : real cload=getARGV("-cload",c);
-   54 : 
-   55 : ////Build the mesh
-   56 : mesh Th;
-   57 : if(!mpirank){
-   58 : 	if(LOAD) Th=readmesh("run/bs_c="+cload+"_m="+Mload+"_om="+omload+"_odd="+odd+".msh");
-   59 : 	else Th=square(Nx,Ny,[(4*x^2/(1+x^2)^2),y^2*pi/2.0]);
-   60 : }
-   61 : 
-   62 : broadcast(processor(0,mpiCommWorld),Th);
-   63 : 
-   64 : ////Space of functions
-   65 : func Pk=P2;
-   66 : fespace Vh(Th,[Pk,Pk,Pk,Pk,Pk]);
-   67 : fespace vh(Th,Pk);
-   68 : Vh [phi,f,l,fm,w];
-   69 : 
-   70 : ////Initial guess function
-   71 : func real guessini(real xx, real yy){
-   72 : 	real res=0.0;
-   73 : 	
-   74 : 	////real zd=9.0;
-   75 : 	real rhod=1.0;
-   76 : 	////real rhod=2.5;
-   77 : 	////real zd=5.3;
-   78 : 	
-   79 : 	if(xx!=1){
-   80 : 		real xc=(xx/(1.0-xx))*sin(yy);
-   81 : 		real yc=(xx/(1.0-xx))*cos(yy);
-   82 : 		real rc=(xx/(1.0-xx));
-   83 : 		
-   84 : 		////res=0.9*exp(-0.1*rc^2); //Guess m=0 (even)
-   85 : 		res=0.4*yc^2*exp(-1.0*rc); ////Guess m=0 (odd, two)
-   86 : 	}
-   87 : 	
-   88 : 	return res;
-   89 : }
-   90 : 
-   91 : func real convw(real xx){
-   92 : 	real res=0.0;
-   93 : 	
-   94 : 	if(xx!=1) res=(c*xx/(1.0-xx));
+   43 : bool PLOTMAT=getARGV("-matplot",0);
+   44 : bool PLOT3D=getARGV("-3Dplot",0);
+   45 : bool PLOT2D=getARGV("-2Dplot",1);
+   46 : bool MAXCONST=getARGV("-const",0);
+   47 : bool QUANT=getARGV("-quant",0);
+   48 : bool RUN=getARGV("-run",1);
+   49 : bool LOAD=getARGV("-load",0);
+   50 : bool SAVE=getARGV("-save",0);
+   51 : bool FORCESAVE=getARGV("-fsave",0);
+   52 : real omload=getARGV("-omload",om);
+   53 : real Mload=getARGV("-mload",M);
+   54 : real cload=getARGV("-cload",c);
+   55 : 
+   56 : ////Build the mesh
+   57 : mesh Th;
+   58 : if(!mpirank){
+   59 : 	if(LOAD) Th=readmesh("run/bs_c="+cload+"_m="+Mload+"_om="+omload+"_odd="+odd+".msh");
+   60 : 	else Th=square(Nx,Ny,[(4*x^2/(1+x^2)^2),y^2*pi/2.0]);
+   61 : }
+   62 : 
+   63 : broadcast(processor(0,mpiCommWorld),Th);
+   64 : 
+   65 : ////Space of functions
+   66 : func Pk=P2;
+   67 : fespace Vh(Th,[Pk,Pk,Pk,Pk,Pk]);
+   68 : fespace vh(Th,Pk);
+   69 : Vh [phi,f,l,fm,w];
+   70 : 
+   71 : ////Initial guess function (experimental)
+   72 : func real guessini(real xx, real yy){
+   73 : 	real res=0.0;
+   74 : 	
+   75 : 	////real zd=9.0;
+   76 : 	real rhod=1.0;
+   77 : 	////real rhod=2.5;
+   78 : 	////real zd=5.3;
+   79 : 	
+   80 : 	if(xx!=1){
+   81 : 		real xc=(xx/(1.0-xx))*sin(yy);
+   82 : 		real yc=(xx/(1.0-xx))*cos(yy);
+   83 : 		real rc=(xx/(1.0-xx));
+   84 : 		
+   85 : 		////res=0.9*exp(-0.1*rc^2); //Guess m=0 (even)
+   86 : 		res=0.4*yc^2*exp(-1.0*rc); ////Guess m=0 (odd, two)
+   87 : 	}
+   88 : 	
+   89 : 	return res;
+   90 : }
+   91 : 
+   92 : ////Rescale w (useful if imported from another code which uses other conventions)
+   93 : func real convw(real xx){
+   94 : 	real res=0.0;
    95 : 	
-   96 : 	return res;
-   97 : }
-   98 : 
-   99 : ////Initial guess
-  100 : if(!mpirank){
-  101 : 	if(LOAD){{
-  102 : 		ifstream in("run/bs_c="+cload+"_m="+Mload+"_om="+omload+"_odd="+odd+".fem");
-  103 : 		in >> phi[];
-  104 : 		
-  105 : 		/** Possibility to change the mesh if needed */
-  106 : 		Th=square(Nx,Ny,[(2*x^1/(1+x^2)),y^2*pi/2.0]);
-  107 : 		////Th=square(Nx,Ny,[(4*x^2/(1+x^2)^2),y^2*pi/2.0]);
-  108 : 		////Th=square(Nx,Ny,[(4*x^2/(1+x^2)^2),(4*y^2/(1+y^2)^2)*pi/2.0]);
-  109 : 		
-  110 : 		////Th=square(Nx,Ny,[(4*x^2/(1+x^2)^2),(y^4*(2.0-y)^4)*pi/2.0]);
-  111 : 		////Th=square(Nx,Ny,[(2*x^2/(1+x^2)),y^2*pi/2.0]);
-  112 : 		
-  113 : 		[phi,f,l,fm,w]=[phi,f,l,fm,w];
-  114 : 	};}
-  115 : 	else{
-  116 : 		/** Use Schwarzschild with a small but non-zero w-function */
-  117 : 		[phi,f,l,fm,w]=[guessini(x,y),0.0,0.0,0.0,0.0];
-  118 : 	}
-  119 : 	cout.precision(pres);
-  120 : 	cout << "Initial guess" << endl;
-  121 : 	/**
-  122 : 	cout << f(1,0.0) << "\t" << f(1,pi/2.0) << "\t" << f(1,pi/4.0) << endl;
-  123 : 	cout << l(1,0.0) << "\t" << l(1,pi/2.0) << "\t" << l(1,pi/4.0) << endl;
-  124 : 	cout << fm(1,0.0) << "\t" << fm(1,pi/2.0) << "\t" << fm(1,pi/4.0) << endl;
-  125 : 	cout << phi(1,0.0) << "\t" << phi(1,pi/2.0) << "\t" << phi(1,pi/4.0) << endl;
-  126 : 	cout << w(1,0.0) << "\t" << w(1,pi/2.0) << "\t" << w(1,pi/4.0) << endl;
-  127 : 	*/
-  128 : }
-  129 : 
-  130 : broadcast(processor(0,mpiCommWorld),Th);
-  131 : broadcast(processor(0,mpiCommWorld),phi[]);
-  132 : 
-  133 : ////Repartiton of the different cells between processors
-  134 : {
-  135 : 	fespace femp0(Th,P0);	femp0 nuT;
-  136 : 	for(int i=0;i<Th.nt;i++)	nuT[][i]=int(i*Ndomains/Th.nt);
-  137 : 	Th=change(Th,fregion=int(nuT(x,y)));
-  138 : 	[phi,f,l,fm,w]=[phi,f,l,fm,w];
-  139 : 	plot(Th,wait=true);
-  140 : 	////plot(nuT,wait=true,fill=true,value=true);
-  141 : }
-  142 : 
-  143 : ////Display the initial guess
-  144 : plot(phi,wait=true,value=true,nbiso=50,fill=true,cmm="Initial guess: phi");
-  145 : plot(f,wait=true,value=true,nbiso=50,fill=true,cmm="Initial guess: f");
-  146 : plot(l,wait=true,value=true,nbiso=50,fill=true,cmm="Initial guess: l");
-  147 : plot(fm,wait=true,value=true,nbiso=50,fill=true,cmm="Initial guess: fm");
-  148 : plot(w,wait=true,value=true,nbiso=50,fill=true,cmm="Initial guess: w");
-  149 : 
-  150 : ////Macros
-  151 : macro cot(u) (1.0/tan(u))  )  ////
-  152 : macro csc(u) (1.0/sin(u))  )  ////
-  153 : macro sec(u) (1.0/cos(u))  )  ////
-  154 : macro E() (exp(1.0)) ////
-  155 : 
-  156 : macro R() (x*c/(1.0-x)) ////
-  157 : macro dxR() (c/pow(-1 + x,2)) ////
-  158 : macro dxxR() ((-2*c)/pow(-1 + x,3)) ////
-  159 : 
-  160 : ////Include auxiliary files (eom and global quantities)
-  161 : include "eom.edp"////Implementation of the weak EOM + their variations for NR
+   96 : 	if(xx!=1) res=(c*xx/(1.0-xx));
+   97 : 	
+   98 : 	return res;
+   99 : }
+  100 : 
+  101 : ////Reimpose manually the b.c. at the boundaries (avoid residual errors due to FF)
+  102 : func real bcphi(real xx, real yy){
+  103 : 	real res=1.0;
+  104 : 	
+  105 : 	if((odd && M==0) && (xx==1 || yy==pi/2.0 || xx==0)) res=0.0;
+  106 : 	else if((!odd && M==0) && xx==1) res=0.0;
+  107 : 	else if((odd && M>0) && (xx==1 || yy==pi/2.0 || xx==0 || yy==0)) res=0.0;
+  108 : 	else if((!odd && M>0) && (xx==1 || xx==0 || yy==0)) res=0.0;
+  109 : 	
+  110 : 	return res;
+  111 : }
+  112 : 
+  113 : func real bcfl(real xx, real yy){
+  114 : 	real res=1.0;
+  115 : 	
+  116 : 	if(xx==1) res=0.0;
+  117 : 	
+  118 : 	return res;
+  119 : }
+  120 : 
+  121 : func real bcm(real xx, real yy){
+  122 : 	real res=1.0;
+  123 : 	
+  124 : 	if(xx==1 || yy==0) res=0.0;
+  125 : 	
+  126 : 	return res;
+  127 : }
+  128 : 
+  129 : func real bcw(real xx, real yy){
+  130 : 	real res=1.0;
+  131 : 	
+  132 : 	if(xx==1 || xx==0) res=0.0;
+  133 : 	
+  134 : 	return res;
+  135 : }
+  136 : 
+  137 : ////Initial guess
+  138 : real time1;
+  139 : if(!mpirank){
+  140 : 	time1=clock();
+  141 : 	if(LOAD){{
+  142 : 		ifstream in("run/bs_c="+cload+"_m="+Mload+"_om="+omload+"_odd="+odd+".fem");
+  143 : 		in >> phi[];
+  144 : 		
+  145 : 		/** Possibility to change the mesh if needed */
+  146 : 		Th=square(Nx,Ny,[(2*x^1/(1+x^2)),y^2*pi/2.0]);
+  147 : 		////Th=square(Nx,Ny,[(4*x^2/(1+x^2)^2),y^2*pi/2.0]);
+  148 : 		////Th=square(Nx,Ny,[(4*x^2/(1+x^2)^2),(4*y^2/(1+y^2)^2)*pi/2.0]);
+  149 : 		
+  150 : 		////Th=square(Nx,Ny,[(4*x^2/(1+x^2)^2),(y^4*(2.0-y)^4)*pi/2.0]);
+  151 : 		////Th=square(Nx,Ny,[(2*x^2/(1+x^2)),y^2*pi/2.0]);
+  152 : 				
+  153 : 		[phi,f,l,fm,w]=[bcphi(x,y)*phi,bcfl(x,y)*f,bcfl(x,y)*l,bcm(x,y)*fm,bcw(x,y)*w];
+  154 : 		////[phi,f,l,fm,w]=[phi,f,l,fm,w];
+  155 : 	};}
+  156 : 	else{
+  157 : 		/** Use the initial guess function (not sure it works) */
+  158 : 		[phi,f,l,fm,w]=[guessini(x,y),0.0,0.0,0.0,0.0];
+  159 : 	}
+  160 : 	real timeini=clock()-time1;
+  161 : 	cout.precision(pres);
+  162 : 	cout << "Initial guess time :" << timeini << endl;
+  163 : }
+  164 : 
+  165 : broadcast(processor(0,mpiCommWorld),Th);
+  166 : broadcast(processor(0,mpiCommWorld),phi[]);
+  167 : 
+  168 : ////Repartition of the different cells between processors
+  169 : {
+  170 : 	fespace femp0(Th,P0);	femp0 nuT;
+  171 : 	for(int i=0;i<Th.nt;i++)	nuT[][i]=int(i*Ndomains/Th.nt);
+  172 : 	Th=change(Th,fregion=int(nuT(x,y)));
+  173 : 	[phi,f,l,fm,w]=[phi,f,l,fm,w];
+  174 : 	plot(Th,wait=true);
+  175 : 	////plot(nuT,wait=true,fill=true,value=true);
+  176 : }
+  177 : 
+  178 : ////Display the initial guess
+  179 : plot(phi,wait=true,value=true,nbiso=50,fill=true,cmm="Initial guess: phi");
+  180 : plot(f,wait=true,value=true,nbiso=50,fill=true,cmm="Initial guess: f");
+  181 : plot(l,wait=true,value=true,nbiso=50,fill=true,cmm="Initial guess: l");
+  182 : plot(fm,wait=true,value=true,nbiso=50,fill=true,cmm="Initial guess: fm");
+  183 : plot(w,wait=true,value=true,nbiso=50,fill=true,cmm="Initial guess: w");
+  184 : 
+  185 : ////Macros
+  186 : macro cot(u) (1.0/tan(u))  )  ////
+  187 : macro csc(u) (1.0/sin(u))  )  ////
+  188 : macro sec(u) (1.0/cos(u))  )  ////
+  189 : macro E() (exp(1.0)) ////
+  190 : 
+  191 : macro R() (x*c/(1.0-x)) ////
+  192 : macro dxR() (c/pow(-1 + x,2)) ////
+  193 : macro dxxR() ((-2*c)/pow(-1 + x,3)) ////
+  194 : 
+  195 : ////Include auxiliary files (eom and global quantities)
+  196 : include "eom.edp"////Implementation of the weak EOM + their variations for NR
     2 : 
     3 : /**
-    4 : Here FreeFem syntax for Dirichlet conditions is "+on(x,uX=0)".
+    4 : The FreeFem syntax for Dirichlet conditions is "+on(x,uX=0)".
     5 : 
     6 : x: boundary number with
     7 : 1: symmetry-axis, \vartheta=0, 
@@ -356,9 +391,9 @@
     9 : 3: equatorial plane, \vartheta=\pi/2,
    10 : 4: event horizon, R=r_H.
    11 : 
-   12 : uX: var function of unknown which has the Dirichlet condition.
+   12 : uX: variation function of unknown which has the Dirichlet condition.
    13 : 
-   14 : /!\ This syntax makes the value of the unknown function X frozen during the iterations,
+   14 : /!\ This syntax makes the value at x of the unknown function X frozen on during the iterations,
    15 : /!\ the initial guess must respect the desired condition.
    16 : */
    17 : 
@@ -459,7 +494,7 @@
   112 : }
   113 : 
   114 : ;
-  162 : include "quant.edp"////Global quantities (computed using int2d)
+  197 : include "quant.edp"////Global quantities (computed using int2d)
     2 : func real virial(real[int] & XX){
     3 : 	Vh [pphi,ff,ll,mm,ww]; pphi[]=XX; ////Copy the d.o.f locally
     4 : 	
@@ -498,7 +533,7 @@
    37 : 	return res;
    38 : }
    39 : 
-   40 : ////"Regularization" of functions for vh construction (remove the boundaries)
+   40 : ////"Regularization" of functions for vh constructions (remove the boundaries)
    41 : func real fconst1(real[int] & XX, real xx, real yy){
    42 : 	Vh [pphi,ff,ll,mm,ww]; pphi[]=XX; ////Copy the d.o.f locally
    43 : 	
@@ -525,267 +560,326 @@
    64 : 		r = xx*c/(1.0-xx);
    65 : 		dxr = (c/pow(-1 + xx,2));
    66 : 		dxxr = ((-2*c)/pow(-1 + xx,3));
-   67 : 		res=abs((pow(dxr,-3)*pow(E   (exp(1.0)) ,-2*(ff + ll + mm))*pow(r,-4)*(2*pow(E   (exp(1.0)) ,2*ff)*pow(r,2)*(r*(dx(ff) + dx(ll) + 2*dx(mm))*pow(dxr,2) + dxxr*(dx(ff) + dx(ll))*pow(r,2) - dxr*pow(r,2)*(-2*(dx(ff) + dx(ll))*(dx(ll) + dx(mm)) + dxx(ff) + dxx(ll) + pow(dx(ff),2) + pow(dx(ll),2) + 4*pow(dx(pphi),2)) + pow(dxr,3)*(-2*cot(y)   (1.0/tan(y)) *dy(mm) - 2*dy(ll)*dy(mm) - 2*dy(ff)*(dy(ll) + dy(mm)) + dyy(ff) + dyy(ll) + pow(dy(ff),2) - pow(dy(ll),2) + 4*pow(dy(pphi),2))) + dxr*pow(E   (exp(1.0)) ,2*ll)*(-4*dxr*r*ww*dx(ww) + pow(r,2)*pow(dx(ww),2) + pow(dxr,2)*(4*pow(ww,2) - pow(dy(ww),2)))*pow(sin(y),2)))/2.);
+   67 : 		res=abs((pow(dxr,-3)*pow(E   (exp(1.0)) ,-2*(ff + ll + mm))*pow(r,-4)*(2*pow(E   (exp(1.0)) ,2*ff)*pow(r,2)*(r*(dx(ff) + dx(ll) + 2*dx(mm))*pow(dxr,2) + dxxr*(dx(ff) + dx(ll))*pow(r,2) - dxr*pow(r,2)*(-2*(dx(ff) + dx(ll))*(dx(ll) + dx(mm)) + dxx(ff) + dxx(ll) + pow(dx(ff),2) + pow(dx(ll),2) + 4*pow(dx(pphi),2)) + pow(dxr,3)*(-2*cot(yy)   (1.0/tan(yy)) *dy(mm) - 2*dy(ll)*dy(mm) - 2*dy(ff)*(dy(ll) + dy(mm)) + dyy(ff) + dyy(ll) + pow(dy(ff),2) - pow(dy(ll),2) + 4*pow(dy(pphi),2))) + dxr*pow(E   (exp(1.0)) ,2*ll)*(-4*dxr*r*ww*dx(ww) + pow(r,2)*pow(dx(ww),2) + pow(dxr,2)*(4*pow(ww,2) - pow(dy(ww),2)))*pow(sin(yy),2)))/2.);
    68 :        	}
    69 : 	
    70 : 	return res;
    71 : }
    72 : 
-   73 : 
-   74 : 
-   75 : ;
-  163 : 
-  164 : ////Variable for the NR Solver
-  165 : real[int] RHS1(phi.n); real[int] RHS2(phi.n);
-  166 : real[int] AuxVec(phi.n);
-  167 : real[int] RESIDUE(2);
-  168 : matrix<real> HessianMat;
-  169 : real eps2=eps^2;
-  170 : bool converge=0;
-  171 : 
-  172 : ////Principal loop
-  173 : real time1=clock();
-  174 : if(RUN){
-  175 : for(int n=0;n<Nmax;n++){
-  176 : 	RHS1=EOM(phi[]);
-  177 : 	Hessian(phi[],HessianMat);
-  178 : 	RHS2=HessianMat^(-1)*RHS1;
-  179 : 	
-  180 : 	////Compute the residuals and communicate
-  181 : 	mpiAllReduce(RHS1,AuxVec,mpiCommWorld,mpiSUM);
-  182 : 	RESIDUE[0]=AuxVec'*AuxVec;
-  183 : 	RESIDUE[1]=RHS2'*RHS2;
-  184 : 	if(!mpirank)	cout << "n=" << n << " , |dJ|^2 = "  << RESIDUE[0] << " , |ddJ|^2 = " << RESIDUE[1] << endl;
-  185 : 	if(RESIDUE[0] < eps2 && RESIDUE[1] < eps2){
-  186 : 		converge=1; 
-  187 : 		break;
-  188 : 	}
-  189 : 	if(RESIDUE[1] > STOP) break;
-  190 : 	
-  191 : 	phi[]-=1.0*RHS2;
-  192 : 	plot(phi,wait=false,value=true,nbiso=50,fill=true,dim=2,cmm="Intermediate steps...");
-  193 : }}
-  194 : else converge=1;
-  195 : real tnr=clock()-time1;
-  196 : if(!mpirank) cout << "NR time :" << tnr << endl;
-  197 : 
-  198 : ////Display the result
-  199 : plot(phi,wait=true,value=true,nbiso=50,fill=true,cmm="Result: f");
-  200 : plot(f,wait=true,value=true,nbiso=50,fill=true,cmm="Result: f");
-  201 : plot(l,wait=true,value=true,nbiso=50,fill=true,cmm="Result: l");
-  202 : plot(fm,wait=true,value=true,nbiso=50,fill=true,cmm="Result: fm");
-  203 : plot(w,wait=true,value=true,nbiso=50,fill=true,cmm="Result: w");
-  204 : 
-  205 : ////Compute physical quantities
-  206 : time1=clock();
-  207 : real Q=int2d(Th)(8.0*pi*dxR     (c/pow(-1 + x,2)) *pow(E   (exp(1.0)) ,-f + 2*fm + 3*l)*pow(phi,2)*(-(M*w) + om*pow(R   (x*c/(1.0-x)) ,2))*sin(y));
-  208 : real J=M*Q;
-  209 : real Mass=int2d(Th)(-8.0*pi*dxR     (c/pow(-1 + x,2)) *pow(E   (exp(1.0)) ,-f + 2*fm + 3*l)*pow(phi,2)*(2*M*om*w + (pow(E   (exp(1.0)) ,2*f) - 2*pow(om,2))*pow(R   (x*c/(1.0-x)) ,2))*sin(y));
-  210 : real Masymp=4.0*pi*int1d(Th,2)(c*dx(f)*sin(y));
-  211 : real Jasymp=-2.0*pi*c*int1d(Th,2)(dx(w)*sin(y));
-  212 : real gtt=int1d(Th,4)(-exp(2.0*f)*sin(y));
-  213 : 
-  214 : func rhoT=pow(phi,2)*(1 + pow(E   (exp(1.0)) ,-2*f)*pow(om,2) - pow(E   (exp(1.0)) ,-2*f)*pow(M,2)*pow(R   (x*c/(1.0-x)) ,-4)*pow(w,2) + pow(E   (exp(1.0)) ,-2*l)*pow(M,2)*pow(R   (x*c/(1.0-x)) ,-2)*pow(csc(y)   (1.0/sin(y)) ,2)) + 
-  215 :    pow(E   (exp(1.0)) ,-2*(fm + l))*(pow(dxR     (c/pow(-1 + x,2)) ,-2)*pow(dx(phi),2) + pow(R   (x*c/(1.0-x)) ,-2)*pow(dy(phi),2));
-  216 :      
-  217 : func rhoK=-2*pow(E   (exp(1.0)) ,-2*f)*pow(phi,2)*pow(R   (x*c/(1.0-x)) ,-2)*(2*M*om*w + (pow(E   (exp(1.0)) ,2*f) - 2*pow(om,2))*pow(R   (x*c/(1.0-x)) ,2));
-  218 : 
-  219 : func fein23=(pow(dxR     (c/pow(-1 + x,2)) ,-2)*pow(E   (exp(1.0)) ,-2*(f + fm + l))*pow(R   (x*c/(1.0-x)) ,-3)*(-2*(-(dxR     (c/pow(-1 + x,2)) *(dy(f) + dy(fm) + dy(l))) + 
-  220 :           R   (x*c/(1.0-x)) *(dxy(f) + dxy(l) + (dx(f) - dx(fm) - dx(l))*dy(f) - dx(fm)*(cot(y)   (1.0/tan(y))  + dy(l)) - (dx(f) + dx(l))*(dy(fm) + dy(l)) + 4*dx(phi)*dy(phi)))*pow(E   (exp(1.0)) ,2*f)*pow(R   (x*c/(1.0-x)) ,2)
-  221 :         + (-2*dxR     (c/pow(-1 + x,2)) *w + R   (x*c/(1.0-x)) *dx(w))*dy(w)*pow(E   (exp(1.0)) ,2*l)*pow(sin(y),2)))/2.;
-  222 : 
-  223 : ////Compute errors estimators
-  224 : real vir=0.0,errm=0.0,err22=0.0,err23=0.0,errM=0.0,errJ=0.0,ein23max=0.0,ein2233max=0.0;
-  225 : 
-  226 : vir=virial(phi[]);
-  227 : errm=int1d(Th,1)(dy(fm));
-  228 : err23=const1(phi[]);
-  229 : err22=const2(phi[]);
-  230 : errM=1.0-(Mass/Masymp);
-  231 : if(M!=0) errJ=1.0-(J/Jasymp);
+   73 : ////Energy density function (NOT WORKING)
+   74 : /**
+   75 : func real rhoT(real MM, real xx, real yy){
+   76 : 	real res=0.0;
+   77 : 	real r, dxr, dxxr;
+   78 : 	
+   79 : 	r = xx*c/(1.0-xx);
+   80 : 	dxr = (c/pow(-1 + xx,2));
+   81 : 	dxxr = ((-2*c)/pow(-1 + xx,3));
+   82 : 	
+   83 : 	if(MM!=0){
+   84 : 		res=pow(phi,2)*(1 + pow(E,-2*f)*pow(om,2) - pow(E,-2*f)*pow(MM,2)*pow(r,-4)*pow(w,2) + pow(E,-2*l)*pow(M,2)*pow(r,-2)*pow(csc(yy),2)) + pow(E,-2*(fm + l))*(pow(dxr,-2)*pow(dx(phi),2) + pow(r,-2)*pow(dy(phi),2));
+   85 : 	}
+   86 : 	
+   87 : 	else{
+   88 : 		res=pow(phi,2)*(1 + pow(E,-2*f)*pow(om,2) - pow(E,-2*f)*pow(MM,2)*pow(r,-4)*pow(w,2)) + pow(E,-2*(fm + l))*(pow(dxr,-2)*pow(dx(phi),2) + pow(r,-2)*pow(dy(phi),2));
+   89 : 	}
+   90 : 	
+   91 : 	return res;
+   92 : }
+   93 : */
+   94 : ;
+  198 : 
+  199 : ////Variable for the NR Solver
+  200 : real[int] RHS1(phi.n); real[int] RHS2(phi.n);
+  201 : real[int] AuxVec(phi.n);
+  202 : real[int] RESIDUE(2);
+  203 : matrix<real> HessianMat;
+  204 : real eps2=eps^2;
+  205 : bool converge=0;
+  206 : 
+  207 : ////Principal loop
+  208 : time1=clock();
+  209 : if(RUN){
+  210 : for(int n=0;n<Nmax;n++){
+  211 : 	RHS1=EOM(phi[]);
+  212 : 	Hessian(phi[],HessianMat);
+  213 : 	RHS2=HessianMat^(-1)*RHS1;
+  214 : 	
+  215 : 	////Compute the residuals and communicate
+  216 : 	mpiAllReduce(RHS1,AuxVec,mpiCommWorld,mpiSUM);
+  217 : 	RESIDUE[0]=AuxVec'*AuxVec;
+  218 : 	RESIDUE[1]=RHS2'*RHS2;
+  219 : 	if(!mpirank)	cout << "n=" << n << " , |dJ|^2 = "  << RESIDUE[0] << " , |ddJ|^2 = " << RESIDUE[1] << endl;
+  220 : 	if(RESIDUE[0] < eps2 && RESIDUE[1] < eps2){
+  221 : 		converge=1; 
+  222 : 		break;
+  223 : 	}
+  224 : 	if(RESIDUE[1] > STOP) break;
+  225 : 	
+  226 : 	phi[]-=1.0*RHS2;
+  227 : 	plot(phi,wait=false,value=true,nbiso=50,fill=true,dim=2,cmm="Intermediate steps...");
+  228 : }}
+  229 : else converge=1;
+  230 : real tnr=clock()-time1;
+  231 : if(!mpirank) cout << "NR time :" << tnr << endl;
   232 : 
-  233 : if(MAXCONST){
-  234 : 	vh ein23 = fconst1(phi[],x,y); 
-  235 : 	vh ein2233 = fconst2(phi[],x,y); 
-  236 : 
-  237 : 	ein23max = ein23[].max;
-  238 : 	ein2233max = ein2233[].max;
-  239 : }
-  240 : 
-  241 : real tquant=clock()-time1;
-  242 : 
-  243 : ////Display the quantities
-  244 : time1=clock();
-  245 : if(!mpirank){
-  246 : 	cout.precision(pres);
-  247 : 	cout << endl << endl;
-  248 : 	cout << "Convergence=" << converge << endl;
-  249 : 	cout << "Errors indicators:" << endl;
-  250 : 	cout << "Errors from virial=" << vir << endl;
-  251 : 	cout << "Errors on the z-axis=" << errm << endl;
-  252 : 	cout << "Errors from Ein(r,r)-Ein(th,th)=" << err22 << "	 (val. max=" << ein2233max << ")" << endl;
-  253 : 	cout << "Errors from Ein(r,th)=" << err23 << "	 (val. max=" << ein23max << ")" << endl;
-  254 : 	cout << "Errors from mass=" << errM << endl;
-  255 : 	cout << "Errors from angular momentum=" << errJ << endl;
-  256 : 	cout << endl;
-  257 : 	cout << "Input: m=" << M << "	 omega" << om << endl;
-  258 : 	cout << endl;
-  259 : 	cout << "Output:" << endl;
-  260 : 	cout << "M(inf)=" << Masymp/(4.0*pi) << "	 M(Komar)=" << Mass/(4.0*pi) << endl;
-  261 : 	cout << "J(inf)=" << Jasymp/(4.0*pi) << "	 J(Komar)=" << J/(4.0*pi) << endl;
-  262 : 	cout << "Q=" << Q << endl;
-  263 : 	cout << "gtt(r=0)=" << gtt << endl;
-  264 : 	/**
-  265 : 	cout << endl;
-  266 : 	cout << f(1,0.0) << "\t" << f(1,pi/2.0) << "\t" << f(1,pi/4.0) << endl;
-  267 : 	cout << l(1,0.0) << "\t" << l(1,pi/2.0) << "\t" << l(1,pi/4.0) << endl;
-  268 : 	cout << fm(1,0.0) << "\t" << fm(1,pi/2.0) << "\t" << fm(1,pi/4.0) << endl;
-  269 : 	cout << phi(1,0.0) << "\t" << phi(1,pi/2.0) << "\t" << phi(1,pi/4.0) << endl;
-  270 : 	cout << w(1,0.0) << "\t" << w(1,pi/2.0) << "\t" << w(1,pi/4.0) << endl;
-  271 : 	*/
-  272 : 	cout << endl << endl;
-  273 : }
-  274 : real tconsole=clock()-time1;
+  233 : ////Display the result
+  234 : plot(phi,wait=true,value=true,nbiso=50,fill=true,cmm="Result: f");
+  235 : plot(f,wait=true,value=true,nbiso=50,fill=true,cmm="Result: f");
+  236 : plot(l,wait=true,value=true,nbiso=50,fill=true,cmm="Result: l");
+  237 : plot(fm,wait=true,value=true,nbiso=50,fill=true,cmm="Result: fm");
+  238 : plot(w,wait=true,value=true,nbiso=50,fill=true,cmm="Result: w");
+  239 : 
+  240 : ////Compute physical quantities
+  241 : time1=clock();
+  242 : real Q=int2d(Th)(8.0*pi*dxR     (c/pow(-1 + x,2)) *pow(E   (exp(1.0)) ,-f + 2*fm + 3*l)*pow(phi,2)*(-(M*w) + om*pow(R   (x*c/(1.0-x)) ,2))*sin(y));
+  243 : real J=M*Q;
+  244 : real Mass=int2d(Th)(-8.0*pi*dxR     (c/pow(-1 + x,2)) *pow(E   (exp(1.0)) ,-f + 2*fm + 3*l)*pow(phi,2)*(2*M*om*w + (pow(E   (exp(1.0)) ,2*f) - 2*pow(om,2))*pow(R   (x*c/(1.0-x)) ,2))*sin(y));
+  245 : real Masymp=4.0*pi*int1d(Th,2)(c*dx(f)*sin(y));
+  246 : real Jasymp=-2.0*pi*c*int1d(Th,2)(dx(w)*sin(y));
+  247 : real gtt=int1d(Th,4)(-exp(2.0*f)*sin(y));
+  248 : 
+  249 : ////Coefficients at the origin (TODO: The scalar field coeff. makes sense only for static dipoles)
+  250 : real f10=int1d(Th,4)((fm+l)*sin(y));
+  251 : real f20=int1d(Th,4)(l*sin(y));
+  252 : vh dxphi=dx(phi);
+  253 : ////real d1=int1d(Th,4)(dx(phi));
+  254 : real d1=dxphi(0.0,pi/2.0-1e-3)/cos(pi/2.0-1e-3);
+  255 : 
+  256 : /** Use this for M>0 */
+  257 : ////func rhoT=pow(phi,2)*(1 + pow(E,-2*f)*pow(om,2) - pow(E,-2*f)*pow(M,2)*pow(R,-4)*pow(w,2) + pow(E,-2*l)*pow(M,2)*pow(R,-2)*pow(csc(y),2)) + pow(E,-2*(fm + l))*(pow(dxR,-2)*pow(dx(phi),2) + pow(R,-2)*pow(dy(phi),2));
+  258 : 
+  259 : /** Use this for M=0 */
+  260 : func rhoT=pow(phi,2) + exp(-2.0*f)*pow(om*phi,2) + exp(-2.0*fm-2.0*l)*(pow(dx(phi)/dxR     (c/pow(-1 + x,2)) ,2)+pow(dy(phi)/R   (x*c/(1.0-x)) ,2));
+  261 : 
+  262 : func rhoK=-2*pow(E   (exp(1.0)) ,-2*f)*pow(phi,2)*pow(R   (x*c/(1.0-x)) ,-2)*(2*M*om*w + (pow(E   (exp(1.0)) ,2*f) - 2*pow(om,2))*pow(R   (x*c/(1.0-x)) ,2));
+  263 : 
+  264 : func fein23=(pow(dxR     (c/pow(-1 + x,2)) ,-2)*pow(E   (exp(1.0)) ,-2*(f + fm + l))*pow(R   (x*c/(1.0-x)) ,-3)*(-2*(-(dxR     (c/pow(-1 + x,2)) *(dy(f) + dy(fm) + dy(l))) + R   (x*c/(1.0-x)) *(dxy(f) + dxy(l) + (dx(f) - dx(fm) - dx(l))*dy(f) - dx(fm)*(cot(y)   (1.0/tan(y))  + dy(l)) - (dx(f) + dx(l))*(dy(fm) + dy(l)) + 4*dx(phi)*dy(phi)))*pow(E   (exp(1.0)) ,2*f)*pow(R   (x*c/(1.0-x)) ,2) + (-2*dxR     (c/pow(-1 + x,2)) *w + R   (x*c/(1.0-x)) *dx(w))*dy(w)*pow(E   (exp(1.0)) ,2*l)*pow(sin(y),2)))/2.;
+  265 : 
+  266 : ////Compute errors estimators
+  267 : real vir=0.0,errm=0.0,err22=0.0,err23=0.0,errM=0.0,errJ=0.0,ein23max=0.0,ein2233max=0.0;
+  268 : 
+  269 : vir=virial(phi[]);
+  270 : errm=int1d(Th,1)(dy(fm));
+  271 : err23=const1(phi[]);
+  272 : err22=const2(phi[]);
+  273 : errM=1.0-(Mass/Masymp);
+  274 : if(M!=0) errJ=1.0-(J/Jasymp);
   275 : 
-  276 : ////Save the configuration
-  277 : time1=clock();
-  278 : if(SAVE && !mpirank && (converge || FORCESAVE)){
-  279 : 	ofstream out("run/bs_c="+c+"_m="+M+"_om="+om+"_odd="+odd+".fem");
-  280 : 	out << phi[];
-  281 : 	Th=change(Th,fregion=0);
-  282 : 	savemesh(Th,"run/bs_c="+c+"_m="+M+"_om="+om+"_odd="+odd+".msh");
+  276 : if(MAXCONST){
+  277 : 	////WARNING: this is very long and not optimal
+  278 : 	vh ein23 = fconst1(phi[],x,y); 
+  279 : 	vh ein2233 = fconst2(phi[],x,y); 
+  280 : 
+  281 : 	ein23max = ein23[].max;
+  282 : 	ein2233max = ein2233[].max;
   283 : }
-  284 : real tsave=clock()-time1;
-  285 : 
-  286 : ////Save with gnuplot
-  287 : time1=clock();
-  288 : 
-  289 : if(!mpirank && converge){
-  290 : 	ofstream outquant("quant.out",append);
-  291 : 	ofstream outerr("err.out",append);
-  292 : 	outquant.precision(pres);
-  293 : 	outerr.precision(pres);
-  294 : 	
-  295 : 	if(QUANT) outquant << om << "	" << Mass/(4.0*pi) << "	" << Masymp/(4.0*pi) << "	" << Q/(4.0*pi) << "	" << J/(4.0*pi) << "	" << Jasymp/(4.0*pi) << "	" << gtt << endl;
-  296 : 	if(QUANT) outerr << om << "	" << Nx << "	" << Ny << "	" << c << "	" << errM << "	" << errJ << "	" << vir << "	" << errm << endl;
-  297 : 	
-  298 : 	ofstream outbs("bs.out");
-  299 : 	ofstream out2d1("bh_2d_1.out");
-  300 : 	ofstream out2d2("bh_2d_2.out");
-  301 : 	ofstream out2d3("bh_2d_3.out");
-  302 : 
-  303 : 	real rr,xx,theta; 
-  304 : 	////int nbr=250, nbth=250;  //3D plot 0 -> \pi   
-  305 : 	int nbr=250, nbth=100;
-  306 : 	int nb2=400;            ////2D plot
-  307 : 	real Rmax=50.0;
-  308 : 	real rrmax=Rmax, rrmin=1e-2;
-  309 : 	real xmax=Rmax, xmin=0.0;
-  310 : 	real thmax=pi/2.0-1e-4, thmin=1e-4;
-  311 : 	real rrstp=(rrmax-rrmin)/(nbr-1);
-  312 : 	real thstp=(thmax-thmin)/(nbth-1);
-  313 : 	real xstp=(xmax-xmin)/(nb2-1);
-  314 : 	real rc,thet,rho,zz;
-  315 : 	real th1,th2,th3;
-  316 : 	real temp, par=1.0;
-  317 : 	
-  318 : 	if(PLOT3D){
-  319 : 		for(int i=0;i<nbr;i++){
-  320 : 			rr=rrmin+i*rrstp;
-  321 : 			for(int j=0;j<nbth;j++){
-  322 : 				theta=thmin+j*thstp;
-  323 : 				rho=rr*sin(theta);
-  324 : 				zz=rr*cos(theta);
-  325 : 				rc=rr/(rr+c);
-  326 : 				if(theta <= pi/2.0){ 
-  327 : 					thet=theta;
-  328 : 				}
-  329 : 				else if(theta > pi/2.0 && theta <= pi){
-  330 : 					thet=pi-theta;
-  331 : 					if(odd) par=-1.0;
-  332 : 				}
-  333 : 			
-  334 : 				outbs << rho << "	" << zz << "	" << par*phi(rc,thet) << "	" << f(rc,thet) << "	" << l(rc,thet) <<  "	" << fm(rc,thet) << "	" << w(rc,thet) << "	" << rhoT(rc,thet) << "	" << rhoK(rc,thet)  /**<< "\t" << ein23(rc,thet) << "\t" << ein2233(rc,thet)*/ << endl;
-  335 : 			}
-  336 : 			outbs << endl;
-  337 : 		}
-  338 : 	}
-  339 : 	
-  340 : 	if(PLOT2D){	
-  341 : 		for(int i=0;i<nb2;i++){
-  342 : 			xx=xmin+i*xstp;
-  343 : 			th1=1e-6; th2=pi/4.0; th3=pi/2.0;
-  344 : 			rc=xx/(xx+c);
-  345 : 			
-  346 : 			out2d1 << xx << "	" << par*phi(rc,th1) << "	" << f(rc,th1) << "	" << l(rc,th1) <<  "	" << fm(rc,th1) << "	" << w(rc,th1) << "	" << rhoT(rc,th1) << "	" << rhoK(rc,th1) << endl;
-  347 : 			out2d2 << xx << "	" << par*phi(rc,th2) << "	" << f(rc,th2) << "	" << l(rc,th2) <<  "	" << fm(rc,th2) << "	" << w(rc,th2) << "	" << rhoT(rc,th2) << "	" << rhoK(rc,th2) << endl;
-  348 : 			out2d3 << xx << "	" << par*phi(rc,th3) << "	" << f(rc,th3) << "	" << l(rc,th3) <<  "	" << fm(rc,th3) << "	" << w(rc,th3) << "	" << rhoT(rc,th3) << "	" << rhoK(rc,th3) << endl;
-  349 : 		}
-  350 : 	}
-  351 : }
-  352 : 
-  353 : real toutput=clock()-time1;
-  354 : 
-  355 : 
-  356 : if(!mpirank){
-  357 : 	cout << endl << endl;
-  358 : 	cout << "NR time :" << tnr << endl;
-  359 : 	cout << "Quantities time :" << tquant << endl;
-  360 : 	cout << "Console time :" << tconsole << endl;
-  361 : 	cout << "Save time :" << tsave << endl;
-  362 : 	cout << "Output time :" << toutput << endl;
-  363 : 	cout << endl << endl;
-  364 : }
-  365 : 	
-  366 :  sizestack + 1024 =248928  ( 247904 )
+  284 : 
+  285 : real tquant=clock()-time1;
+  286 : 
+  287 : ////Display the quantities
+  288 : time1=clock();
+  289 : if(!mpirank){
+  290 : 	cout.precision(pres);
+  291 : 	cout << endl << endl;
+  292 : 	cout << "Convergence=" << converge << endl;
+  293 : 	cout << "Errors indicators:" << endl;
+  294 : 	cout << "Errors from virial=" << vir << endl;
+  295 : 	cout << "Errors on the z-axis=" << errm << endl;
+  296 : 	cout << "Errors from Ein(r,r)-Ein(th,th)=" << err22 << "	 (val. max=" << ein2233max << ")" << endl;
+  297 : 	cout << "Errors from Ein(r,th)=" << err23 << "	 (val. max=" << ein23max << ")" << endl;
+  298 : 	cout << "Errors from mass=" << errM << endl;
+  299 : 	cout << "Errors from angular momentum=" << errJ << endl;
+  300 : 	cout << endl;
+  301 : 	cout << "Input: m=" << M << "	 omega" << om << endl;
+  302 : 	cout << endl;
+  303 : 	cout << "Output:" << endl;
+  304 : 	cout << "M(inf)=" << Masymp/(4.0*pi) << "	 M(Komar)=" << Mass/(4.0*pi) << endl;
+  305 : 	cout << "J(inf)=" << Jasymp/(4.0*pi) << "	 J(Komar)=" << J/(4.0*pi) << endl;
+  306 : 	cout << "Q=" << Q << endl;
+  307 : 	cout << "gtt(r=0)=" << gtt << "	 F_1(r=0)=" << f10 << "	 F_2(r=0)=" << f20 << endl;
+  308 : 	if(odd && M==0) cout << "d1=" << d1 << "	 -T00(r=0)=" << pow(d1,2.0)*exp(-2.0*f10) << endl;
+  309 : 	cout << endl << endl;
+  310 : }
+  311 : real tconsole=clock()-time1;
+  312 : 
+  313 : ////Save the configuration
+  314 : time1=clock();
+  315 : if(SAVE && !mpirank && (converge || FORCESAVE)){
+  316 : 	ofstream out("run/bs_c="+c+"_m="+M+"_om="+om+"_odd="+odd+".fem");
+  317 : 	out << phi[];
+  318 : 	Th=change(Th,fregion=0);
+  319 : 	savemesh(Th,"run/bs_c="+c+"_m="+M+"_om="+om+"_odd="+odd+".msh");
+  320 : }
+  321 : real tsave=clock()-time1;
+  322 : 
+  323 : ////Save with gnuplot
+  324 : time1=clock();
+  325 : 
+  326 : if(!mpirank && converge){
+  327 : 	ofstream outquant("quant.out",append);
+  328 : 	ofstream outerr("err.out",append);
+  329 : 	outquant.precision(pres);
+  330 : 	outerr.precision(pres);
+  331 : 	
+  332 : 	if(QUANT) outquant << om << "	" << Mass/(4.0*pi) << "	" << Masymp/(4.0*pi) << "	" << Q/(4.0*pi) << "	" << J/(4.0*pi) << "	" << Jasymp/(4.0*pi) << "	" << gtt << endl;
+  333 : 	if(QUANT) outerr << om << "	" << Nx << "	" << Ny << "	" << c << "	" << errM << "	" << errJ << "	" << vir << "	" << errm << endl;
+  334 : 	
+  335 : 	ofstream outbs("bs.out");
+  336 : 	ofstream outmat("bs_mat.out");
+  337 : 	ofstream out2d1("bh_2d_1.out");
+  338 : 	ofstream out2d2("bh_2d_2.out");
+  339 : 	ofstream out2d3("bh_2d_3.out");
+  340 : 	
+  341 : 	outmat.precision(pres);
+  342 : 
+  343 : 	real rr,xx,theta; 
+  344 : 	////int nbr=250, nbth=250;  //3D plot 0 -> \pi   
+  345 : 	int nbr=250, nbth=100;    ////3D plot 0 -> \pi/2  
+  346 : 	int nb2=400;              ////2D plot
+  347 : 	int nbxc=300, nbxth=100;  ////For Mathematica
+  348 : 	real Rmax=50.0;
+  349 : 	real rrmax=Rmax, rrmin=1e-2;
+  350 : 	real xmax=Rmax, xmin=1e-2;
+  351 : 	real xcmax=1.0, xcmin=0.0;
+  352 : 	real thmax=pi/2.0, thmin=0.0;
+  353 : 	real rrstp=(rrmax-rrmin)/(nbr-1);
+  354 : 	real thstp=(thmax-thmin)/(nbth-1);
+  355 : 	real thxstp=(thmax-thmin)/(nbxth-1);
+  356 : 	real xcstp=(xcmax-xcmin)/(nbxc-1);
+  357 : 	real xstp=(xmax-xmin)/(nb2-1);
+  358 : 	real rc,thet,rho,zz;
+  359 : 	real th,th1,th2,th3;
+  360 : 	real temp, par=1.0;
+  361 : 	
+  362 : 	if(PLOT3D){
+  363 : 		for(int i=0;i<nbr;i++){
+  364 : 			rr=rrmin+i*rrstp;
+  365 : 			for(int j=0;j<nbth;j++){
+  366 : 				theta=thmin+j*thstp;
+  367 : 				rho=rr*sin(theta);
+  368 : 				zz=rr*cos(theta);
+  369 : 				rc=rr/(rr+c);
+  370 : 				if(theta <= pi/2.0){ 
+  371 : 					thet=theta;
+  372 : 				}
+  373 : 				else if(theta > pi/2.0 && theta <= pi){
+  374 : 					thet=pi-theta;
+  375 : 					if(odd) par=-1.0;
+  376 : 				}
+  377 : 			
+  378 : 				outbs << rho << "	" << zz << "	" << par*phi(rc,thet) << "	" << f(rc,thet) << "	" << l(rc,thet) <<  "	" << fm(rc,thet) << "	" << w(rc,thet) << "	" << rhoT(rc,thet) << "	" << rhoK(rc,thet)  /**<< "\t" << ein23(rc,thet) << "\t" << ein2233(rc,thet)*/ << endl;
+  379 : 			}
+  380 : 			outbs << endl;
+  381 : 		}
+  382 : 	}
+  383 : 	
+  384 : 	if(PLOTMAT){
+  385 : 		for(int i=0;i<nbxc;i++){
+  386 : 			rc=xcmin+i*xcstp;
+  387 : 			for(int j=0;j<nbxth;j++){
+  388 : 				th=thmin+j*thstp;
+  389 : 				
+  390 : 				if(th>pi/2.0){
+  391 : 					if(odd) par=-1.0;
+  392 : 					else par=1.0;
+  393 : 					theta=pi-th;
+  394 : 				}
+  395 : 				else{
+  396 : 					par=1.0;
+  397 : 					theta=th;
+  398 : 				}
+  399 : 				
+  400 : 				if(rc==1) temp=0.0;
+  401 : 				else if(rc==0) temp=rhoT(rc+xcstp,theta);
+  402 : 				else	       temp=rhoT(rc,theta);
+  403 : 				
+  404 : 				outmat << rc << "	" << th << "	" << par*phi(rc,theta) << "	" << temp << "	" << l(rc,theta)+fm(rc,theta) << endl;
+  405 : 			}
+  406 : 			outmat << endl;
+  407 : 		}
+  408 : 	}
+  409 : 	
+  410 : 	if(PLOT2D){	
+  411 : 		for(int i=0;i<nb2;i++){
+  412 : 			xx=xmin+i*xstp;
+  413 : 			th1=1e-6; th2=pi/4.0; th3=pi/2.0-1e-3;
+  414 : 			rc=xx/(xx+c);
+  415 : 			
+  416 : 			out2d1 << xx << "	" << par*dxphi(rc,th1)/cos(th1) << "	" << f(rc,th1) << "	" << l(rc,th1) <<  "	" << fm(rc,th1) << "	" << w(rc,th1) << "	" << rhoT(rc,th1) << "	" << rhoK(rc,th1) << endl;
+  417 : 			out2d2 << xx << "	" << par*dxphi(rc,th2)/cos(th2) << "	" << f(rc,th2) << "	" << l(rc,th2) <<  "	" << fm(rc,th2) << "	" << w(rc,th2) << "	" << rhoT(rc,th2) << "	" << rhoK(rc,th2) << endl;
+  418 : 			out2d3 << xx << "	" << par*dxphi(rc,th3)/cos(th3) << "	" << f(rc,th3) << "	" << l(rc,th3) <<  "	" << fm(rc,th3) << "	" << w(rc,th3) << "	" << rhoT(rc,th3) << "	" << rhoK(rc,th3) << endl;
+  419 : 		}
+  420 : 	}
+  421 : }
+  422 : 
+  423 : real toutput=clock()-time1;
+  424 : 
+  425 : 
+  426 : if(!mpirank){
+  427 : 	cout << endl << endl;
+  428 : 	cout << "NR time :" << tnr << endl;
+  429 : 	cout << "Quantities time :" << tquant << endl;
+  430 : 	cout << "Console time :" << tconsole << endl;
+  431 : 	cout << "Save time :" << tsave << endl;
+  432 : 	cout << "Output time :" << toutput << endl;
+  433 : 	cout << endl << endl;
+  434 : }
+  435 : 	
+  436 :  sizestack + 1024 =244680  ( 243656 )
 
   --  mesh:  Nb of Triangles =  13000, Nb of Vertices 6681
   -- Square mesh : nb vertices  =6681 ,  nb triangles = 13000 ,  nb boundary edges 360 rmdup= 0
-Initial guess
-n=0 , |dJ|^2 = 1.09516334176e-11 , |ddJ|^2 = 1.99411432359e-08
-n=1 , |dJ|^2 = 2.7042580392e-18 , |ddJ|^2 = 1.16797938214e-13
-n=2 , |dJ|^2 = 2.08068167565e-26 , |ddJ|^2 = 2.92413963215e-27
-NR time :22.805466
+Initial guess time :2.801928
+n=0 , |dJ|^2 = 3.13118015913e-06 , |ddJ|^2 = 6.91981223808
+n=1 , |dJ|^2 = 4.36281809165e-08 , |ddJ|^2 = 11.9315260611
+n=2 , |dJ|^2 = 2.63175874014e-07 , |ddJ|^2 = 0.0961812629638
+n=3 , |dJ|^2 = 1.30433809447e-10 , |ddJ|^2 = 0.000379595995121
+n=4 , |dJ|^2 = 9.84183265485e-16 , |ddJ|^2 = 5.2584462602e-08
+n=5 , |dJ|^2 = 4.64075935853e-24 , |ddJ|^2 = 1.30822766792e-17
+n=6 , |dJ|^2 = 9.58164217182e-26 , |ddJ|^2 = 4.21946495222e-28
+NR time :49.492886
 
 
 Convergence=1
 Errors indicators:
-Errors from virial=-5.20457991662e-13
-Errors on the z-axis=-1.83070133557e-09
-Errors from Ein(r,r)-Ein(th,th)=-2.63921112436e-07	 (val. max=0)
-Errors from Ein(r,th)=-5.38010537291e-11	 (val. max=0)
-Errors from mass=-4.72256234119e-10
+Errors from virial=-8.05067151138e-08
+Errors on the z-axis=-6.74771047568e-06
+Errors from Ein(r,r)-Ein(th,th)=-0.0267717050107	 (val. max=0)
+Errors from Ein(r,th)=-3.28723486144e-06	 (val. max=0)
+Errors from mass=-4.55022908241e-10
 Errors from angular momentum=0
 
-Input: m=0	 omega0.99
+Input: m=0	 omega0.75
 
 Output:
-M(inf)=0.373093353778	 M(Komar)=0.373093353955
+M(inf)=0.900865493061	 M(Komar)=0.900865493471
 J(inf)=-0	 J(Komar)=0
-Q=4.70388618931
-gtt(r=0)=-0.972447106088
+Q=11.3006111721
+gtt(r=0)=-0.371835011717	 F_1(r=0)=0.430011725484	 F_2(r=0)=0.43001036965
+d1=0.435320426272	 -T00(r=0)=0.080188973199
 
 
   number of required edges : 0
 
 
-NR time :22.805466
-Quantities time :6.029938
-Console time :0.000118000000001
-Save time :0.065069
-Output time :0.000197999999997
+NR time :49.492886
+Quantities time :5.988598
+Console time :0.000140000000002
+Save time :0.076103
+Output time :0.000185999999999
 
 
-times: compile 0.040115s, execution 34.2377s,  mpirank:3
- ######## unfreed pointers   0 Nb pointer,   0Bytes  ,  mpirank 3, memory leak =4623456
- CodeAlloc : nb ptr  16307,  size :961208 mpirank: 3
-times: compile 0.040507s, execution 34.3149s,  mpirank:2
- ######## unfreed pointers   0 Nb pointer,   0Bytes  ,  mpirank 2, memory leak =2504496
- CodeAlloc : nb ptr  16307,  size :961208 mpirank: 2
-times: compile 0.064675s, execution 34.287915s,  mpirank:0
- ######## unfreed pointers   21 Nb pointer,   0Bytes  ,  mpirank 0, memory leak =3844384
- CodeAlloc : nb ptr  16307,  size :961208 mpirank: 0
+times: compile 0.069268s, execution 63.604821s,  mpirank:0
+ ######## unfreed pointers   21 Nb pointer,   0Bytes  ,  mpirank 0, memory leak =4893712
+ CodeAlloc : nb ptr  16700,  size :973504 mpirank: 0
 Ok: Normal End
-times: compile 0.040575s, execution 34.315s,  mpirank:1
- ######## unfreed pointers   0 Nb pointer,   0Bytes  ,  mpirank 1, memory leak =3561456
- CodeAlloc : nb ptr  16307,  size :961208 mpirank: 1
+times: compile 0.055999s, execution 63.6224s,  mpirank:2
+ ######## unfreed pointers   0 Nb pointer,   0Bytes  ,  mpirank 2, memory leak =2497824
+ CodeAlloc : nb ptr  16700,  size :973504 mpirank: 2
+times: compile 0.044517s, execution 63.6288s,  mpirank:1
+ ######## unfreed pointers   0 Nb pointer,   0Bytes  ,  mpirank 1, memory leak =4630992
+ CodeAlloc : nb ptr  16700,  size :973504 mpirank: 1
+times: compile 0.056025s, execution 63.568s,  mpirank:3
+ ######## unfreed pointers   0 Nb pointer,   0Bytes  ,  mpirank 3, memory leak =3571376
+ CodeAlloc : nb ptr  16700,  size :973504 mpirank: 3

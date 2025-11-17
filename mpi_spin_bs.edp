@@ -89,7 +89,7 @@ func real guessini(real xx, real yy){
 	return res;
 }
 
-//Rescale w if imported from another code which uses other conventions
+//Rescale w (useful if imported from another code which uses other conventions)
 func real convw(real xx){
 	real res=0.0;
 	
@@ -98,8 +98,46 @@ func real convw(real xx){
 	return res;
 }
 
+//Reimpose manually the b.c. at the boundaries (avoid residual errors due to FF)
+func real bcphi(real xx, real yy){
+	real res=1.0;
+	
+	if((odd && M==0) && (xx==1 || yy==pi/2.0 || xx==0)) res=0.0;
+	else if((!odd && M==0) && xx==1) res=0.0;
+	else if((odd && M>0) && (xx==1 || yy==pi/2.0 || xx==0 || yy==0)) res=0.0;
+	else if((!odd && M>0) && (xx==1 || xx==0 || yy==0)) res=0.0;
+	
+	return res;
+}
+
+func real bcfl(real xx, real yy){
+	real res=1.0;
+	
+	if(xx==1) res=0.0;
+	
+	return res;
+}
+
+func real bcm(real xx, real yy){
+	real res=1.0;
+	
+	if(xx==1 || yy==0) res=0.0;
+	
+	return res;
+}
+
+func real bcw(real xx, real yy){
+	real res=1.0;
+	
+	if(xx==1 || xx==0) res=0.0;
+	
+	return res;
+}
+
 //Initial guess
+real time1;
 if(!mpirank){
+	time1=clock();
 	if(LOAD){{
 		ifstream in("run/bs_c="+cload+"_m="+Mload+"_om="+omload+"_odd="+odd+".fem");
 		in >> phi[];
@@ -111,15 +149,17 @@ if(!mpirank){
 		
 		//Th=square(Nx,Ny,[(4*x^2/(1+x^2)^2),(y^4*(2.0-y)^4)*pi/2.0]);
 		//Th=square(Nx,Ny,[(2*x^2/(1+x^2)),y^2*pi/2.0]);
-		
-		[phi,f,l,fm,w]=[phi,f,l,fm,w];
+				
+		[phi,f,l,fm,w]=[bcphi(x,y)*phi,bcfl(x,y)*f,bcfl(x,y)*l,bcm(x,y)*fm,bcw(x,y)*w];
+		//[phi,f,l,fm,w]=[phi,f,l,fm,w];
 	};}
 	else{
-		/* Use Schwarzschild with a small but non-zero w-function */
+		/* Use the initial guess function (not sure it works) */
 		[phi,f,l,fm,w]=[guessini(x,y),0.0,0.0,0.0,0.0];
 	}
+	real timeini=clock()-time1;
 	cout.precision(pres);
-	cout << "Initial guess" << endl;
+	cout << "Initial guess time :" << timeini << endl;
 }
 
 broadcast(processor(0,mpiCommWorld),Th);
@@ -165,7 +205,7 @@ real eps2=eps^2;
 bool converge=0;
 
 //Principal loop
-real time1=clock();
+time1=clock();
 if(RUN){
 for(int n=0;n<Nmax;n++){
 	RHS1=EOM(phi[]);

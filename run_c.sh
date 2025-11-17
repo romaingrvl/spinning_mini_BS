@@ -4,14 +4,14 @@ SOURCEFILE=mpi_spin_bs.edp
 LOGFILE=log.txt
 
 m=0
-om=0.99
+om=0.75
 odd=1
-c1=12.62512004
-c2=12.64438636
+c1=1.0
+c2=2.0
 
 nx=130
 ny=50
-n=15
+n=20
 inc=1
 
 if (( $inc != -1 ))
@@ -23,7 +23,7 @@ fi
 
 stp=$(bc -l <<<"scale=9;($c2-$c1)/($n-1)")
 
-#mpirun -np 4 FreeFem++-mpi -ng $SOURCEFILE -load 1 -save 1 -quant 1 -2Dplot 0 -c $c -m $m -om $om -odd $odd -nx $nx -ny $ny
+mpirun -np 4 FreeFem++-mpi -ng $SOURCEFILE -load 1 -save 1 -quant 1 -2Dplot 0 -c $c -m $m -om $om -odd $odd -nx $nx -ny $ny
 
 for ((i=1;i<$n;i++))
 do
