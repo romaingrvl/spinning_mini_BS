@@ -250,7 +250,6 @@ real gtt=int1d(Th,4)(-exp(2.0*f)*sin(y));
 real f10=int1d(Th,4)((fm+l)*sin(y));
 real f20=int1d(Th,4)(l*sin(y));
 vh dxphi=dx(phi);
-//real d1=int1d(Th,4)(dx(phi));
 real d1=dxphi(0.0,pi/2.0-1e-3)/cos(pi/2.0-1e-3);
 
 /* Use this for M>0 */
@@ -401,7 +400,7 @@ if(!mpirank && converge){
 				else if(rc==0) temp=rhoT(rc+xcstp,theta);
 				else	       temp=rhoT(rc,theta);
 				
-				outmat << rc << "\t" << th << "\t" << par*phi(rc,theta) << "\t" << temp << "\t" << l(rc,theta)+fm(rc,theta) << endl;
+				outmat << rc << "\t" << th << "\t" << par*phi(rc,theta) << "\t" << par*dxphi(rc,theta) << "\t" << temp << "\t" << l(rc,theta)+fm(rc,theta) << endl;
 			}
 			outmat << endl;
 		}
