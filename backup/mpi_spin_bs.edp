@@ -136,7 +136,7 @@ func real bcw(real xx, real yy){
 }
 
 //Initial guess
-real time1,tini;
+real time1;
 if(!mpirank){
 	time1=clock();
 	if(LOAD){{
@@ -146,6 +146,9 @@ if(!mpirank){
 		/* Possibility to change the mesh if needed */
 		Th=square(Nx,Ny,[(2*x^1/(1+x^2)),y^2*pi/2.0]);
 		//Th=square(Nx,Ny,[(4*x^2/(1+x^2)^2),y^2*pi/2.0]);
+		//Th=square(Nx,Ny,[(4*x^2/(1+x^2)^2),(4*y^2/(1+y^2)^2)*pi/2.0]);
+		
+		//Th=square(Nx,Ny,[(4*x^2/(1+x^2)^2),(y^4*(2.0-y)^4)*pi/2.0]);
 		//Th=square(Nx,Ny,[(2*x^2/(1+x^2)),y^2*pi/2.0]);
 				
 		if(FORCEBC) [phi,f,l,fm,w]=[bcphi(x,y)*phi,bcfl(x,y)*f,bcfl(x,y)*l,bcm(x,y)*fm,bcw(x,y)*w]; //Re-enforce manually the Dirichlet condition (takes more time)
@@ -155,9 +158,9 @@ if(!mpirank){
 		/* Use the initial guess function (not sure it works) */
 		[phi,f,l,fm,w]=[guessini(x,y),0.0,0.0,0.0,0.0];
 	}
-	tini=clock()-time1;
+	real timeini=clock()-time1;
 	cout.precision(pres);
-	cout << "Initial guess time :" << tini << endl;
+	cout << "Initial guess time :" << timeini << endl;
 }
 
 broadcast(processor(0,mpiCommWorld),Th);
@@ -422,7 +425,7 @@ real toutput=clock()-time1;
 
 if(!mpirank){
 	cout << endl << endl;
-	cout << "Initial guess time :" << tini << endl;
+	cout << "Initial guess time :" << 
 	cout << "NR time :" << tnr << endl;
 	cout << "Quantities time :" << tquant << endl;
 	cout << "Console time :" << tconsole << endl;
