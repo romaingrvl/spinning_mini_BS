@@ -36,8 +36,8 @@ real STOP=getARGV("-stop",1e6);
 int Nx=getARGV("-nx",250);
 int Ny=getARGV("-ny",50);
 real c=getARGV("-c",1.0);
+int pres=getARGV("-acu",12);
 real eps=2.0e-12; //10e-10
-int pres=12;
 
 //Gobal bool
 bool PLOTMAT=getARGV("-matplot",0);
@@ -49,7 +49,7 @@ bool RUN=getARGV("-run",1);
 bool LOAD=getARGV("-load",0);
 bool SAVE=getARGV("-save",0);
 bool FORCESAVE=getARGV("-fsave",0);
-bool FORCEBC=getARGV("-bs",1);
+bool FORCEBC=getARGV("-bc",1);
 real omload=getARGV("-omload",om);
 real Mload=getARGV("-mload",M);
 real cload=getARGV("-cload",c);
@@ -144,8 +144,8 @@ if(!mpirank){
 		in >> phi[];
 		
 		/* Possibility to change the mesh if needed */
-		Th=square(Nx,Ny,[(2*x^1/(1+x^2)),y^2*pi/2.0]);
-		//Th=square(Nx,Ny,[(4*x^2/(1+x^2)^2),y^2*pi/2.0]);
+		//Th=square(Nx,Ny,[(2*x^1/(1+x^2)),y^2*pi/2.0]);
+		Th=square(Nx,Ny,[(4*x^2/(1+x^2)^2),y^2*pi/2.0]);
 		//Th=square(Nx,Ny,[(2*x^2/(1+x^2)),y^2*pi/2.0]);
 				
 		if(FORCEBC) [phi,f,l,fm,w]=[bcphi(x,y)*phi,bcfl(x,y)*f,bcfl(x,y)*l,bcm(x,y)*fm,bcw(x,y)*w]; //Re-enforce manually the Dirichlet condition (takes more time)
@@ -326,7 +326,7 @@ if(!mpirank && converge){
 	outquant.precision(pres);
 	outerr.precision(pres);
 	
-	if(QUANT) outquant << om << "\t" << Mass/(4.0*pi) << "\t" << Masymp/(4.0*pi) << "\t" << Q/(4.0*pi) << "\t" << J/(4.0*pi) << "\t" << Jasymp/(4.0*pi) << "\t" << gtt << endl;
+	if(QUANT) outquant << om << "\t" << Nx << "\t" << Ny << "\t" << c << "\t"  << Mass/(4.0*pi) << "\t" << Masymp/(4.0*pi) << "\t" << Q/(4.0*pi) << "\t" << J/(4.0*pi) << "\t" << Jasymp/(4.0*pi) << "\t" << gtt << endl;
 	if(QUANT) outerr << om << "\t" << Nx << "\t" << Ny << "\t" << c << "\t" << errM << "\t" << errJ << "\t" << vir << "\t" << errm << endl;
 	
 	ofstream outbs("bs.out");
