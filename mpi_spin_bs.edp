@@ -215,7 +215,7 @@ for(int n=0;n<Nmax;n++){
 	RESIDUE[0]=AuxVec'*AuxVec;
 	RESIDUE[1]=RHS2'*RHS2;
 	if(!mpirank)	cout << "n=" << n << " , |dJ|^2 = "  << RESIDUE[0] << " , |ddJ|^2 = " << RESIDUE[1] << endl;
-	if(RESIDUE[0] < eps2 && RESIDUE[1] < eps2){
+	if(/*RESIDUE[0] < eps2 &&*/ RESIDUE[1] < eps2){
 		converge=1; 
 		break;
 	}
