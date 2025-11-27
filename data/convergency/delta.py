@@ -2,8 +2,8 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 #Importing the data
-tag="dbs2"
-Ny=50
+tag="rbs2"
+Ny=100
 filename="../quant_"+tag+"_ny="+str(Ny)+".out"
 
 data=[]
