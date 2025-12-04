@@ -18,9 +18,10 @@ func real virial(real[int] & XX){
 func real const1(real[int] & XX){
 	Vh [pphi,ff,ll,mm,ww]; pphi[]=XX; //Copy the d.o.f locally
 	
-	real res=int2d(Th)((pow(dxR,-2)*pow(E,-2*(ff + ll + mm))*pow(R,-3)*(-2*(-(dxR*(dy(ff) + dy(ll) + dy(mm))) + 
-          R*(dxy(ff) + dxy(ll) + (dx(ff) - dx(ll) - dx(mm))*dy(ff) - dx(mm)*(cot(y) + dy(ll)) - (dx(ff) + dx(ll))*(dy(ll) + dy(mm)) + 4*dx(pphi)*dy(pphi)))*
-        pow(E,2*ff)*pow(R,2) + (-2*dxR*ww + R*dx(ww))*dy(ww)*pow(E,2*ll)*pow(sin(y),2)))/2.);
+	//Eugen choice
+	real res=int2d(Th)((pow(dxR,-2)*pow(E,-2*(ff + ll + mm))*pow(R,-3)*(-2*(-(dxR*(dy(ff) + dy(ll) + dy(mm))) + R*(dxy(ff) + dxy(ll) + (dx(ff) - dx(ll) - dx(mm))*dy(ff) - dx(mm)*(cot(y) + dy(ll)) - (dx(ff) + dx(ll))*(dy(ll) + dy(mm)) + 4*dx(pphi)*dy(pphi)))*pow(E,2*ff)*pow(R,2) + (-2*dxR*ww + R*dx(ww))*dy(ww)*pow(E,2*ll)*pow(sin(y),2)))/2.);
+	//MSV choice
+	//real res=int2d(Th)((pow(dxR,-1)*pow(E,-ff + ll)*(-2*(-(dxR*(dy(ff) + dy(ll) + dy(mm))) +  R*(dxy(ff) + dxy(ll) + (dx(ff) - dx(ll) - dx(mm))*dy(ff) - dx(mm)*(cot(y) + dy(ll)) - (dx(ff) + dx(ll))*(dy(ll) + dy(mm)) + 4*dx(pphi)*dy(pphi)))*pow(E,2*ff) + (-2*dxR*ww + R*dx(ww))*dy(ww)*pow(E,2*ll)*pow(R,-2)*pow(sin(y),2))*sin(y))/2.);
 	
 	return res;
 }
@@ -28,11 +29,10 @@ func real const1(real[int] & XX){
 func real const2(real[int] & XX){
 	Vh [pphi,ff,ll,mm,ww]; pphi[]=XX; //Copy the d.o.f locally
 	
-	real res=int2d(Th)((pow(dxR,-3)*pow(E,-2*(ff + ll + mm))*pow(R,-4)*(2*pow(E,2*ff)*pow(R,2)*
-        (R*(dx(ff) + dx(ll) + 2*dx(mm))*pow(dxR,2) + dxxR*(dx(ff) + dx(ll))*pow(R,2) - 
-          dxR*pow(R,2)*(-2*(dx(ff) + dx(ll))*(dx(ll) + dx(mm)) + dxx(ff) + dxx(ll) + pow(dx(ff),2) + pow(dx(ll),2) + 4*pow(dx(pphi),2)) + 
-          pow(dxR,3)*(-2*cot(y)*dy(mm) - 2*dy(ll)*dy(mm) - 2*dy(ff)*(dy(ll) + dy(mm)) + dyy(ff) + dyy(ll) + pow(dy(ff),2) - pow(dy(ll),2) + 4*pow(dy(pphi),2))) + 
-       dxR*pow(E,2*ll)*(-4*dxR*R*ww*dx(ww) + pow(R,2)*pow(dx(ww),2) + pow(dxR,2)*(4*pow(ww,2) - pow(dy(ww),2)))*pow(sin(y),2)))/2.);
+	//Eugen choice
+	real res=int2d(Th)((pow(dxR,-3)*pow(E,-2*(ff + ll + mm))*pow(R,-4)*(2*pow(E,2*ff)*pow(R,2)*(R*(dx(ff) + dx(ll) + 2*dx(mm))*pow(dxR,2) + dxxR*(dx(ff) + dx(ll))*pow(R,2) - dxR*pow(R,2)*(-2*(dx(ff) + dx(ll))*(dx(ll) + dx(mm)) + dxx(ff) + dxx(ll) + pow(dx(ff),2) + pow(dx(ll),2) + 4*pow(dx(pphi),2)) +  pow(dxR,3)*(-2*cot(y)*dy(mm) - 2*dy(ll)*dy(mm) - 2*dy(ff)*(dy(ll) + dy(mm)) + dyy(ff) + dyy(ll) + pow(dy(ff),2) - pow(dy(ll),2) + 4*pow(dy(pphi),2))) + dxR*pow(E,2*ll)*(-4*dxR*R*ww*dx(ww) + pow(R,2)*pow(dx(ww),2) + pow(dxR,2)*(4*pow(ww,2) - pow(dy(ww),2)))*pow(sin(y),2)))/2.);
+	//MSV choice
+	//real res=int2d(Th)((pow(dxR,-1)*pow(E,-ff + 3*ll)*pow(R,-1)*(-4*dxR*R*ww*dx(ww) + pow(R,2)*pow(dx(ww),2) + pow(dxR,2)*(4*pow(ww,2) - pow(dy(ww),2)))*pow(sin(y),3))/2. + R*pow(dxR,-2)*pow(E,ff + ll)*(R*(dx(ff) + dx(ll) + 2*dx(mm))*pow(dxR,2)*sin(y) + dxxR*(dx(ff) + dx(ll))*pow(R,2)*sin(y) -  dxR*pow(R,2)*(-2*(dx(ff) + dx(ll))*(dx(ll) + dx(mm)) + dxx(ff) + dxx(ll) + pow(dx(ff),2) + pow(dx(ll),2) + 4*pow(dx(pphi),2))*sin(y) + pow(dxR,3)*(-2*cos(y)*dy(mm) + (-2*(dy(ff) + dy(ll))*(dy(ll) + dy(mm)) + dyy(ff) + dyy(ll) + pow(dy(ff),2) + pow(dy(ll),2) + 4*pow(dy(pphi),2))*sin(y))));
 	
 	return res;
 }
