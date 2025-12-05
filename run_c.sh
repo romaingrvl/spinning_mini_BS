@@ -5,14 +5,14 @@ LOGFILE=log.txt
 
 bc=0
 m=1
-om=0.922773
+om=0.864472118135
 odd=0
-c1=0.7614
-c2=1.0
+c1=0.5
+c2=0.7614
 
 nx=137
 ny=54
-n=20
+n=30
 inc=-1
 
 if (( $inc != -1 ))
@@ -22,7 +22,7 @@ else
 	c=$c2
 fi
 
-stp=$(bc -l <<<"scale=9;($c2-$c1)/($n-1)")
+stp=$(bc -l <<<"scale=12;($c2-$c1)/($n-1)")
 
 #mpirun -np 4 FreeFem++-mpi -ng $SOURCEFILE -load 1 -save 1 -quant 1 -2Dplot 0 -acu 15 -bc $bc -c $c -m $m -om $om -odd $odd -nx $nx -ny $ny
 
@@ -31,9 +31,9 @@ do
 	c0=$c
 	if (( $inc != -1 ))
 	then
-		c=$(bc -l <<<"scale=9;$c+$stp")
+		c=$(bc -l <<<"scale=12;$c+$stp")
 	else
-		c=$(bc -l <<<"scale=9;$c-$stp")
+		c=$(bc -l <<<"scale=12;$c-$stp")
 	fi
 	
 	echo "c = $c"
@@ -45,10 +45,10 @@ do
 	then
 		echo "NOT CONVERGED, DIMINUTION OF THE STEP"
 		c=$c0
-		stp=$(bc -l <<<"scale=9;$stp*0.5")
+		stp=$(bc -l <<<"scale=12;$stp*0.5")
 	else
 		#stp=$(bc -l <<<"scale=9;$stp*1.01")
-		stp=$(bc -l <<<"scale=9;$stp*1.0")
+		stp=$(bc -l <<<"scale=12;$stp*1.0")
 	fi
 	
 done

@@ -37,7 +37,7 @@ int Nx=getARGV("-nx",250);
 int Ny=getARGV("-ny",50);
 real c=getARGV("-c",1.0);
 int pres=getARGV("-acu",12);
-real eps=2.0e-12; //10e-10
+real eps=1.0e-11; //10e-10
 
 //Gobal bool
 bool PLOTMAT=getARGV("-matplot",0);

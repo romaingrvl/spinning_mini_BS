@@ -224,7 +224,7 @@
    37 : int Ny=getARGV("-ny",50);
    38 : real c=getARGV("-c",1.0);
    39 : int pres=getARGV("-acu",12);
-   40 : real eps=2.0e-12; ////10e-10
+   40 : real eps=1.0e-11; ////10e-10
    41 : 
    42 : ////Gobal bool
    43 : bool PLOTMAT=getARGV("-matplot",0);
@@ -824,13 +824,67 @@
   431 : 	cout << endl << endl;
   432 : }
   433 : 	
-  434 :  sizestack + 1024 =258048  ( 257024 )
+  434 :  sizestack + 1024 =258528  ( 257504 )
 
   --  mesh:  Nb of Triangles =  14796, Nb of Vertices 7590
   -- Square mesh : nb vertices  =7590 ,  nb triangles = 14796 ,  nb boundary edges 382 rmdup= 0
-Initial guess time :0.230565
-n=0 , |dJ|^2 = 1.08910498262071e-08 , |ddJ|^2 = 2.031436660471
-n=1 , |dJ|^2 = 5.7324156675689e-12 , |ddJ|^2 = 0.223707788616075
-n=2 , |dJ|^2 = 4.22690285772097e-14 , |ddJ|^2 = 2.47064179300391e-06
-n=3 , |dJ|^2 = 2.06317731513804e-21 , |ddJ|^2 = 1.65924271737881e-11
-n=4 , |dJ|^2 = 1.12589652893119e-25 , |ddJ|^2 = 1.47577943504724e-23
+Initial guess time :0.213651
+n=0 , |dJ|^2 = 1.28060851881364e-13 , |ddJ|^2 = 1.2714845681325e-08
+n=1 , |dJ|^2 = 6.98803966221826e-26 , |ddJ|^2 = 6.81862282268598e-14
+n=2 , |dJ|^2 = 6.53741194086452e-26 , |ddJ|^2 = 2.19344833932013e-20
+n=3 , |dJ|^2 = 6.88539486334634e-26 , |ddJ|^2 = 2.17906260348883e-20
+n=4 , |dJ|^2 = 7.34455001499122e-26 , |ddJ|^2 = 1.81727783976345e-20
+n=5 , |dJ|^2 = 6.12434806874981e-26 , |ddJ|^2 = 2.9007790418203e-20
+n=6 , |dJ|^2 = 7.24005130370375e-26 , |ddJ|^2 = 1.6424420843071e-20
+n=7 , |dJ|^2 = 7.01424968122198e-26 , |ddJ|^2 = 1.24183236583503e-22
+n=8 , |dJ|^2 = 7.97439016865296e-26 , |ddJ|^2 = 5.37239444265357e-22
+n=9 , |dJ|^2 = 7.24676640973729e-26 , |ddJ|^2 = 7.97388215349139e-21
+n=10 , |dJ|^2 = 7.26570281702411e-26 , |ddJ|^2 = 1.60432001633178e-20
+n=11 , |dJ|^2 = 6.74609357023187e-26 , |ddJ|^2 = 3.82166233060325e-20
+n=12 , |dJ|^2 = 7.08702008401154e-26 , |ddJ|^2 = 1.61153729222067e-20
+n=13 , |dJ|^2 = 6.79203671092167e-26 , |ddJ|^2 = 8.46110349234338e-20
+n=14 , |dJ|^2 = 8.26530276167112e-26 , |ddJ|^2 = 1.80612661238825e-21
+NR time :127.859422
+
+
+Convergence=0
+Errors indicators:
+Errors from virial=-8.13776175101972e-09
+Errors on the z-axis=-2.93586538759976e-06
+Errors from Ein(r,r)-Ein(th,th)=0.0972819095709554	 (val. max=0)
+Errors from Ein(r,th)=-8.31481286637269e-07	 (val. max=0)
+Errors from mass=-6.18511062810967e-07
+Errors from angular momentum=-8.15078174953854e-07
+
+Input: m=1	 omega=0.922829956408
+
+Output:
+M(inf)=0.594311566792304	 M(Komar)=0.594311934380582
+J(inf)=0.346468471134118	 J(Komar)=0.346468753533007
+Q=4.35385476319083
+gtt(r=0)=-0.0007366361124495	 F_1(r=0)=2.9988980246057	 F_2(r=0)=2.99889823078005
+
+
+
+
+Initial guess time :0.213651
+NR time :127.859422
+Quantities time :6.820055
+Console time :0.000122000000004618
+Save time :4.00000001832268e-06
+Output time :3.99999998990097e-06
+
+
+times: compile 0.056513s, execution 140.434s,  mpirank:times: compile 2
+0.056578s, execution 140.594s,  mpirank:1
+ ######## unfreed pointers   0 Nb pointer,   0Bytes  ,  mpirank 2, memory leak =2499792
+ CodeAlloc : nb ptr  16879,  size :979832 mpirank: 2
+ ######## unfreed pointers   0 Nb pointer,   0Bytes  ,  mpirank 1, memory leak =4616688
+ CodeAlloc : nb ptr  16879,  size :979832 mpirank: 1
+times: compile 0.042606s, execution 140.613s,  mpirank:3
+times: compile  ######## unfreed pointers   0 Nb pointer,   0Bytes  ,  mpirank 3, memory leak =3573408
+ CodeAlloc : nb ptr  0.07135s, execution 16879,  size :979832 mpirank: 3
+140.583889s,  mpirank:0
+ ######## unfreed pointers   21 Nb pointer,   0Bytes  ,  mpirank 0, memory leak =6130560
+ CodeAlloc : nb ptr  16879,  size :979832 mpirank: 0
+Ok: Normal End
