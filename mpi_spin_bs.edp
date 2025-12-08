@@ -19,7 +19,7 @@ and a redefinition: \hat{m} = m - l.
 
 // To construct a reference solution, proceed as follows:
 // 1. Copy-paste .msh and .fem files from run/refs/ to run/.
-// 2. Execute the command below:
+// 2. Execute the command below (replace c, om, odd by the desired values):
 // EXEC:   mpirun -np 4 FreeFem++-mpi -wg mpi_spin_bs.edp -load 1 -save 1 -c 1 -m 0 -om 0.99 -odd 1
 
 load "MUMPS_mpi"
@@ -147,8 +147,9 @@ if(!mpirank){
 		
 		/* Possibility to change the mesh if needed */
 		//Th=square(Nx,Ny,[(2*x^1/(1+x^2)),y^2*pi/2.0]);
-		Th=square(Nx,Ny,[(4*x^2/(1+x^2)^2),y^2*pi/2.0]);
+		Th=square(Nx,Ny,[(4*x^2/(1+x^2)^2),y^1*pi/2.0]);
 		//Th=square(Nx,Ny,[(2*x^2/(1+x^2)),y^2*pi/2.0]);
+		//Th=square(Nx,Ny,[x,y*pi/2.0]);
 				
 		if(FORCEBC) [phi,f,l,fm,w]=[bcphi(x,y)*phi,bcfl(x,y)*f,bcfl(x,y)*l,bcm(x,y)*fm,bcw(x,y)*w*convw(x)]; //Re-enforce manually the Dirichlet condition (takes more time)
 		else [phi,f,l,fm,w]=[phi,f,l,fm,w]; //Just re-adapt the solution to the new mesh
