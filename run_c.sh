@@ -4,11 +4,11 @@ SOURCEFILE=mpi_spin_bs.edp
 LOGFILE=log.txt
 
 bc=0
-m=1
-om=0.864472118135
-odd=0
-c1=0.5
-c2=0.7614
+m=0
+om=0.736268
+odd=1
+c1=0.8
+c2=1.0
 
 nx=137
 ny=54
@@ -47,8 +47,8 @@ do
 		c=$c0
 		stp=$(bc -l <<<"scale=12;$stp*0.5")
 	else
-		#stp=$(bc -l <<<"scale=9;$stp*1.01")
-		stp=$(bc -l <<<"scale=12;$stp*1.0")
+		stp=$(bc -l <<<"scale=9;$stp*1.01")
+		#stp=$(bc -l <<<"scale=12;$stp*1.0")
 	fi
 	
 done

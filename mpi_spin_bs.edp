@@ -146,8 +146,8 @@ if(!mpirank){
 		in >> phi[];
 		
 		/* Possibility to change the mesh if needed */
-		//Th=square(Nx,Ny,[(2*x^1/(1+x^2)),y^2*pi/2.0]);
-		Th=square(Nx,Ny,[(4*x^2/(1+x^2)^2),y^2*pi/2.0]);
+		Th=square(Nx,Ny,[(2*x^1/(1+x^2)),y^2*pi/2.0]);
+		//Th=square(Nx,Ny,[(4*x^2/(1+x^2)^2),y^2*pi/2.0]);
 		//Th=square(Nx,Ny,[(2*x^2/(1+x^2)),y^2*pi/2.0]);
 		//Th=square(Nx,Ny,[x,y*pi/2.0]);
 				
@@ -333,12 +333,9 @@ if(!mpirank && converge){
 	if(QUANT) outerr << om << "\t" << Nx << "\t" << Ny << "\t" << c << "\t" << errM << "\t" << errJ << "\t" << vir << "\t" << errm << endl;
 	
 	ofstream outbs("bs.out");
-	ofstream outmat("bs_mat.out");
 	ofstream out2d1("bh_2d_1.out");
 	ofstream out2d2("bh_2d_2.out");
 	ofstream out2d3("bh_2d_3.out");
-	
-	outmat.precision(pres);
 
 	real rr,xx,theta; 
 	//int nbr=250, nbth=250;  //3D plot 0 -> \pi   
@@ -382,6 +379,8 @@ if(!mpirank && converge){
 	}
 	
 	if(PLOTMAT){
+	        ofstream outmat("data/mathematica/dipole_data/bs_mat_om="+om+"_m="+M+"_c="+c+".out");
+	        outmat.precision(pres);
 		for(int i=0;i<nbxc;i++){
 			rc=xcmin+i*xcstp;
 			for(int j=0;j<nbxth;j++){
@@ -397,11 +396,14 @@ if(!mpirank && converge){
 					theta=th;
 				}
 				
+				/*
 				if(rc==1) temp=0.0;
 				else if(rc==0) temp=rhoT(rc+xcstp,theta);
 				else	       temp=rhoT(rc,theta);
+				*/
 				
-				outmat << rc << "\t" << th << "\t" << par*phi(rc,theta) << "\t" << par*dxphi(rc,theta) << "\t" << temp << "\t" << l(rc,theta)+fm(rc,theta) << endl;
+				//outmat << rc << "\t" << th << "\t" << par*phi(rc,theta) << "\t" << par*dxphi(rc,theta) << "\t" << temp << "\t" << l(rc,theta)+fm(rc,theta) << endl;
+				outmat << rc << "\t" << th << "\t" << par*phi(rc,theta) << "\t" << f(rc,theta) << "\t" << l(rc,theta) << "\t" << fm(rc,theta) << "\t" << w(rc,theta) << endl;
 			}
 			outmat << endl;
 		}
