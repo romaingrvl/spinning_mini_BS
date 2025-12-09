@@ -147,7 +147,7 @@ if(!mpirank){
 		
 		/* Possibility to change the mesh if needed */
 		//Th=square(Nx,Ny,[(2*x^1/(1+x^2)),y^2*pi/2.0]);
-		Th=square(Nx,Ny,[(4*x^2/(1+x^2)^2),y^1*pi/2.0]);
+		Th=square(Nx,Ny,[(4*x^2/(1+x^2)^2),y^2*pi/2.0]);
 		//Th=square(Nx,Ny,[(2*x^2/(1+x^2)),y^2*pi/2.0]);
 		//Th=square(Nx,Ny,[x,y*pi/2.0]);
 				
