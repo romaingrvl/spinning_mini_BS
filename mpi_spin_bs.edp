@@ -151,7 +151,7 @@ if(!mpirank){
 		//Th=square(Nx,Ny,[(2*x^2/(1+x^2)),y^2*pi/2.0]);
 		//Th=square(Nx,Ny,[x,y*pi/2.0]);
 				
-		if(FORCEBC) [phi,f,l,fm,w]=[bcphi(x,y)*phi,bcfl(x,y)*f,bcfl(x,y)*l,bcm(x,y)*fm,bcw(x,y)*w*convw(x)]; //Re-enforce manually the Dirichlet condition (takes more time)
+		if(FORCEBC) [phi,f,l,fm,w]=[bcphi(x,y)*phi,bcfl(x,y)*f,bcfl(x,y)*l,bcm(x,y)*fm,bcw(x,y)*w]; //Re-enforce manually the Dirichlet condition (takes more time)
 		else [phi,f,l,fm,w]=[phi,f,l,fm,w]; //Just re-adapt the solution to the new mesh
 	};}
 	else{
