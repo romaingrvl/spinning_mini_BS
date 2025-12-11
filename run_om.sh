@@ -6,13 +6,13 @@ LOGFILE=log.txt
 bc=1
 c=1.0
 m=0.0
-om=0.8275
+om=0.842379101537
 odd=1
-nx=137
+nx=274
 ny=54
 
-del=0.0005
-n=150
+del=0.0001
+n=100
 
 #mpirun -np 4 FreeFem++-mpi -ng $SOURCEFILE -save 1 -load 1 -quant 1 -2Dplot 0 -acu 15 -bc $bc -c $c -m $m -om $om -odd $odd -nx $nx -ny $ny
 
