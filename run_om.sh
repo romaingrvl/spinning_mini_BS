@@ -3,15 +3,16 @@
 SOURCEFILE=mpi_spin_bs.edp
 LOGFILE=log.txt
 
+matplot=0
 bc=1
 c=1.0
 m=0.0
-om=0.842379101537
+om=0.84265
 odd=1
 nx=274
 ny=54
 
-del=0.0001
+del=0.00005
 n=100
 
 #mpirun -np 4 FreeFem++-mpi -ng $SOURCEFILE -save 1 -load 1 -quant 1 -2Dplot 0 -acu 15 -bc $bc -c $c -m $m -om $om -odd $odd -nx $nx -ny $ny
@@ -24,7 +25,7 @@ do
 	
 	echo "Omega = $om"
 	
-	mpirun -np 4 FreeFem++-mpi -ng $SOURCEFILE -save 1 -load 1 -quant 1 -2Dplot 0 -matplot 1 -acu 15 -bc $bc -c $c -m $m -omload $om0 -om $om -odd $odd -nx $nx -ny $ny | tee $LOGFILE
+	mpirun -np 4 FreeFem++-mpi -ng $SOURCEFILE -save 1 -load 1 -quant 1 -2Dplot 0 -matplot $matplot -acu 15 -bc $bc -c $c -m $m -omload $om0 -om $om -odd $odd -nx $nx -ny $ny | tee $LOGFILE
 	
 	CHECK_CONV=$(cat $LOGFILE | grep "Convergence=1")
 	
