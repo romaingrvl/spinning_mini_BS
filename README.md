@@ -1,8 +1,8 @@
-![Status](https://img.shields.io/badge/Access-Read--Only-red)
+![Status](https://img.shields.io/badge/Status-Research%20Code-orange)
 ![License](https://img.shields.io/badge/License-CC%20BY--NC%204.0-blue)
 ![Cite](https://img.shields.io/badge/Cite-Gervalle%202025-lightgrey)
 
-This repository is made publicly available **for consultation only** as part of research and academic evaluation.
+This repository is made publicly available as part of research and academic evaluation.
 
 The code solves the Einstein-Klein-Gordon field equations for constructing
 spinning (mini) boson stars. The scalar field is governed by the equation:
