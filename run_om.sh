@@ -3,17 +3,17 @@
 SOURCEFILE=mpi_spin_bs.edp
 LOGFILE=log.txt
 
-matplot=0
+matplot=1
 bc=1
-c=1.0
+c=12.635047045
 m=0.0
-om=0.84265
+om=0.999994375
 odd=1
-nx=274
+nx=137
 ny=54
 
-del=0.00005
-n=100
+del=0.0000004
+n=40
 
 #mpirun -np 4 FreeFem++-mpi -ng $SOURCEFILE -save 1 -load 1 -quant 1 -2Dplot 0 -acu 15 -bc $bc -c $c -m $m -om $om -odd $odd -nx $nx -ny $ny
 
