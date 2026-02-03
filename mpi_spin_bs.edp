@@ -44,7 +44,7 @@ real eps=1.0e-11; //1.0e-11 //2.0e-12
 //Gobal bool
 bool PLOTMAT=getARGV("-matplot",0);
 bool PLOT3D=getARGV("-3Dplot",0);
-bool PLOT2D=getARGV("-2Dplot",1);
+bool PLOT2D=getARGV("-2Dplot",0);
 bool MAXCONST=getARGV("-const",0);
 bool QUANT=getARGV("-quant",0);
 bool RUN=getARGV("-run",1);
@@ -369,8 +369,8 @@ if(!mpirank && converge){
 	real Rmax=50.0;
 	real rrmax=Rmax, rrmin=1e-2;
 	//real xmax=Rmax, xmin=1e-2;
-	real xmax=1.0, xmin=0.1;
-	real xcmax=1.0, xcmin=0.1;
+	real xmax=1.0, xmin=0.0;
+	real xcmax=1.0, xcmin=0.0;
 	real thmax=pi/2.0, thmin=0.0;
 	real rrstp=(rrmax-rrmin)/(nbr-1);
 	real thstp=(thmax-thmin)/(nbth-1);
@@ -422,23 +422,25 @@ if(!mpirank && converge){
 				}
 				
 				//For output I
-				/*
+				
 				if(rc==1) temp=0.0;
 				else if(rc==0) temp=rhoT(rc+xcstp,theta);
 				else	       temp=rhoT(rc,theta);
-				*/
+				
 				
 				//For output II
+				/*
 				if(rc==1) temp=0.0;
 				else if(rc==0) temp=Kr(rc+xcstp,theta);
 				else if(theta==0) temp=Kr(rc,theta+thstp);
 				else temp=Kr(rc,theta);
+				*/
 				
 				//Output I (temp is energy density)
-				//outmat << rc << "\t" << th << "\t" << par*phi(rc,theta) << "\t" << par*dxphi(rc,theta) << "\t" << temp << "\t" << l(rc,theta)+fm(rc,theta) << endl;
+				outmat << rc << "\t" << th << "\t" << par*phi(rc,theta) << "\t" << par*dxphi(rc,theta) << "\t" << temp << "\t" << l(rc,theta)+fm(rc,theta) << endl;
 				
 				//Output II (temp is Kretschmann)
-				outmat << rc << "\t" << th << "\t" << par*phi(rc,theta) << "\t" << par*dxphi(rc,theta) << "\t" << temp << "\t" << exp(2.0*f(rc,theta)) << endl;
+				//outmat << rc << "\t" << th << "\t" << par*phi(rc,theta) << "\t" << par*dxphi(rc,theta) << "\t" << temp << "\t" << exp(2.0*f(rc,theta)) << endl;
 			}
 			outmat << endl;
 		}
