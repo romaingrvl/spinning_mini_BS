@@ -6,3 +6,4 @@ data/mathematica/tests/
 data/mathematica/*.pdf
 data/mathematica/*.png
 data/mathematica/dipole_data/
+backup/
