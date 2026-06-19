@@ -1,9 +1,12 @@
 dist_bs.nb
-plot/
+profile.nb
+run/*.fem
+run/*.msh
 data/convergency/
 data/full_sequence_rbs/Mathematica/
 data/mathematica/tests/
-data/mathematica/*.pdf
 data/mathematica/*.png
 data/mathematica/dipole_data/
+data/mathematica/rotating_data/
+plot/
 backup/

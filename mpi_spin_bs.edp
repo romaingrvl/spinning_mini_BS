@@ -39,7 +39,7 @@ int Nx=getARGV("-nx",250);
 int Ny=getARGV("-ny",50);
 real c=getARGV("-c",1.0);
 int pres=getARGV("-acu",12);
-real eps=1.0e-11; //1.0e-11 //2.0e-12
+real eps=1.0e-10; //1.0e-11; //1.0e-11 //2.0e-12
 
 //Gobal bool
 bool PLOTMAT=getARGV("-matplot",0);
@@ -146,7 +146,7 @@ if(!mpirank){
 		in >> phi[];
 		
 		/* Possibility to change the mesh if needed */
-		Th=square(Nx,Ny,[(2*x^1/(1+x^2)),y^2*pi/2.0]);
+		//Th=square(Nx,Ny,[(2*x^1/(1+x^2)),y^2*pi/2.0]);
 		//Th=square(Nx,Ny,[(4*x^2/(1+x^2)^2),y^2*pi/2.0]);
 		//Th=square(Nx,Ny,[(2*x^2/(1+x^2)),y^2*pi/2.0]);
 		//Th=square(Nx,Ny,[x,y*pi/2.0]);
@@ -254,10 +254,10 @@ vh dxphi=dx(phi);
 real d1=dxphi(0.0,pi/2.0-1e-3)/cos(pi/2.0-1e-3);
 
 /* Use this for M>0 */
-//func rhoT=pow(phi,2)*(1 + pow(E,-2*f)*pow(om,2) - pow(E,-2*f)*pow(M,2)*pow(R,-4)*pow(w,2) + pow(E,-2*l)*pow(M,2)*pow(R,-2)*pow(csc(y),2)) + pow(E,-2*(fm + l))*(pow(dxR,-2)*pow(dx(phi),2) + pow(R,-2)*pow(dy(phi),2));
+func rhoT=pow(phi,2)*(1 + pow(E,-2*f)*pow(om,2) - pow(E,-2*f)*pow(M,2)*pow(R,-4)*pow(w,2) + pow(E,-2*l)*pow(M,2)*pow(R,-2)*pow(csc(y),2)) + pow(E,-2*(fm + l))*(pow(dxR,-2)*pow(dx(phi),2) + pow(R,-2)*pow(dy(phi),2));
 
 /* Use this for M=0 */
-func rhoT=pow(phi,2) + exp(-2.0*f)*pow(om*phi,2) + exp(-2.0*fm-2.0*l)*(pow(dx(phi)/dxR,2)+pow(dy(phi)/R,2));
+//func rhoT=pow(phi,2) + exp(-2.0*f)*pow(om*phi,2) + exp(-2.0*fm-2.0*l)*(pow(dx(phi)/dxR,2)+pow(dy(phi)/R,2));
 
 func rhoK=-2*pow(E,-2*f)*pow(phi,2)*pow(R,-2)*(2*M*om*w + (pow(E,2*f) - 2*pow(om,2))*pow(R,2));
 
@@ -286,6 +286,8 @@ func Kr=4*pow(dxR,-6)*pow(E,-4*(fm + l))*pow(R,-4)*(-2*dxR*dxxR*pow(R,4)*(dx(f)*
         2*(cot(y)*dy(fm) + pow(csc(y),2) + pow(dy(fm),2))*pow(dy(l),2) + 
         pow(dy(f),2)*(1 + 2*(cot(y) + 2*dy(fm))*dy(l) + 2*dyy(f) + pow(csc(y),2) + 2*pow(dy(fm),2) + 3*pow(dy(l),2)) + 2*(cot(y) + dy(fm))*pow(dy(l),3) + pow(dy(l),4) + 
         pow(dyy(f),2) + pow(dyy(fm),2) + 2*pow(dyy(l),2)));
+        
+func fgtt=exp(2.0*f)-exp(2.0*l)*pow(w*sin(y)/R,2.0);
 
 //Compute errors estimators
 real vir=0.0,errm=0.0,err22=0.0,err23=0.0,errM=0.0,errJ=0.0,ein23max=0.0,ein2233max=0.0;
@@ -365,12 +367,12 @@ if(!mpirank && converge){
 	//int nbr=250, nbth=250;  //3D plot 0 -> \pi   
 	int nbr=250, nbth=100;    //3D plot 0 -> \pi/2  
 	int nb2=1000;              //2D plot
-	int nbxc=300, nbxth=100;  //For Mathematica
+	int nbxc=300, nbxth=100;  //For Mathematica nbcx=300
 	real Rmax=50.0;
 	real rrmax=Rmax, rrmin=1e-2;
 	//real xmax=Rmax, xmin=1e-2;
 	real xmax=1.0, xmin=0.0;
-	real xcmax=1.0, xcmin=0.0;
+	real xcmax=1.0, xcmin=0.0; //xcmin=0.01
 	real thmax=pi/2.0, thmin=0.0;
 	real rrstp=(rrmax-rrmin)/(nbr-1);
 	real thstp=(thmax-thmin)/(nbth-1);
@@ -404,12 +406,15 @@ if(!mpirank && converge){
 	}
 	
 	if(PLOTMAT){
-	        ofstream outmat("data/mathematica/dipole_data/bs_mat_om="+om+"_m="+M+"_c="+c+".out");
+	        ofstream outmat("data/mathematica/rotating_data/bs_mat_om="+om+"_m="+M+"_c="+c+".out");
 	        outmat.precision(pres);
 		for(int i=0;i<nbxc;i++){
 			rc=xcmin+i*xcstp;
 			for(int j=0;j<nbxth;j++){
-				th=thmin+j*thstp;
+				th=thmin+j*thxstp;
+				
+				//For debug: 
+				//cout << rc << "\t" << th << endl;
 				
 				if(th>pi/2.0){
 					if(odd) par=-1.0;
@@ -422,25 +427,36 @@ if(!mpirank && converge){
 				}
 				
 				//For output I
-				
+				/*
 				if(rc==1) temp=0.0;
 				else if(rc==0) temp=rhoT(rc+xcstp,theta);
 				else	       temp=rhoT(rc,theta);
-				
+				*/
 				
 				//For output II
 				/*
 				if(rc==1) temp=0.0;
-				else if(rc==0) temp=Kr(rc+xcstp,theta);
-				else if(theta==0) temp=Kr(rc,theta+thstp);
+				else if(rc==0 && theta>0) temp=Kr(rc+xcstp,theta);
+				else if(rc==0 && theta==0) temp=Kr(rc+xcstp,theta+thxstp);
+				else if((rc>0 && rc<1) && theta==0) temp=Kr(rc,theta+thxstp);
 				else temp=Kr(rc,theta);
 				*/
 				
+				//For output III
+				
+				if(rc==1) temp=1.0;
+				else if(rc==0) temp=exp(2.0*f(rc,theta));
+				else temp=fgtt(rc,theta);
+				
+				
 				//Output I (temp is energy density)
-				outmat << rc << "\t" << th << "\t" << par*phi(rc,theta) << "\t" << par*dxphi(rc,theta) << "\t" << temp << "\t" << l(rc,theta)+fm(rc,theta) << endl;
+				//outmat << rc << "\t" << th << "\t" << par*phi(rc,theta) << "\t" << par*dxphi(rc,theta) << "\t" << temp << "\t" << l(rc,theta)+fm(rc,theta) << endl;
 				
 				//Output II (temp is Kretschmann)
 				//outmat << rc << "\t" << th << "\t" << par*phi(rc,theta) << "\t" << par*dxphi(rc,theta) << "\t" << temp << "\t" << exp(2.0*f(rc,theta)) << endl;
+				
+				//Output III (temp is -g_{tt} is computed consistently, even for RBS)
+				outmat << rc << "\t" << th << "\t" << par*phi(rc,theta) << "\t" << par*dxphi(rc,theta) << "\t" << temp << "\t" << exp(2.0*f(rc,theta)) << endl;
 			}
 			outmat << endl;
 		}
